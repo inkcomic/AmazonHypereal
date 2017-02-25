@@ -1,8 +1,8 @@
 
 #include "StdAfx.h"
 #include <platform_impl.h>
-
-#include "HyperealVRSystemComponent.h"
+#include <FlowSystem/Nodes/FlowBaseNode.h>
+#include "HyperealVRDevice.h"
 
 #include <IGem.h>
 
@@ -19,7 +19,7 @@ namespace HyperealVR
         {
             // Push results of [MyComponent]::CreateDescriptor() into m_descriptors here.
             m_descriptors.insert(m_descriptors.end(), {
-                HyperealVRSystemComponent::CreateDescriptor(),
+                HyperealVRDevice::CreateDescriptor(),
             });
         }
 
@@ -29,9 +29,19 @@ namespace HyperealVR
         AZ::ComponentTypeList GetRequiredSystemComponents() const override
         {
             return AZ::ComponentTypeList{
-                azrtti_typeid<HyperealVRSystemComponent>(),
+                azrtti_typeid<HyperealVRDevice>(),
             };
         }
+
+		void OnSystemEvent(ESystemEvent event, UINT_PTR, UINT_PTR) override
+		{
+			switch (event)
+			{
+			case ESYSTEM_EVENT_FLOW_SYSTEM_REGISTER_EXTERNAL_NODES:
+				RegisterExternalFlowNodes();
+				break;
+			}
+		}
     };
 }
 
