@@ -301,3 +301,37 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+
+Lumberyard/1.7.0.0/dev/Code
+Lumberyard/1.7.0.0/dev/_WAF_
+Lumberyard/1.7.0.0/dev/AssetProcessorTemp
+Lumberyard/1.7.0.0/dev/Bin64
+Lumberyard/1.7.0.0/dev/Bin64vc120
+Lumberyard/1.7.0.0/dev/Bin64vc140
+Lumberyard/1.7.0.0/dev/Bin64vc140.Debug
+Lumberyard/1.7.0.0/dev/Bin64vc140.Debug.Test
+Lumberyard/1.7.0.0/dev/BinTemp
+Lumberyard/1.7.0.0/dev/Cache
+Lumberyard/1.7.0.0/dev/Editor
+Lumberyard/1.7.0.0/dev/Engine
+Lumberyard/1.7.0.0/dev/FeatureTests
+Lumberyard/1.7.0.0/dev/MultiplayerProject
+Lumberyard/1.7.0.0/dev/MultiplayerSample
+Lumberyard/1.7.0.0/dev/ProjectTemplates
+Lumberyard/1.7.0.0/dev/SamplesProject
+Lumberyard/1.7.0.0/dev/Solutions
+Lumberyard/1.7.0.0/dev/Tools
+Lumberyard/1.7.0.0/dev/*.*
+Lumberyard/1.7.0.0/dev/wscript
+
+Lumberyard/1.7.0.0/dev/Gems/*
+!Lumberyard/1.7.0.0/dev/Gems/HyperealVR
+
+
+Lumberyard/1.7.0.0/3rdParty/*
+#!Lumberyard/1.7.0.0/3rdParty/HyperealVR
+Lumberyard/1.7.0.0/docs
+Lumberyard/1.7.0.0/LICENSE.txt
+Lumberyard/1.7.0.0/SetupAssistant.bat
+Lumberyard/1.7.0.0/dev/user

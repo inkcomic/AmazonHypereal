@@ -1,0 +1,18 @@
+{
+    "none": {
+        "Source": [
+            "Source/StdAfx.cpp",
+            "Source/StdAfx.h"
+        ]
+    },
+    "auto": {
+        "Include": [
+            "Include/HyperealVR/HyperealVRBus.h"
+        ],
+        "Source": [
+            "Source/HyperealVRModule.cpp",
+            "Source/HyperealVRSystemComponent.cpp",
+            "Source/HyperealVRSystemComponent.h"
+        ]
+    }
+}

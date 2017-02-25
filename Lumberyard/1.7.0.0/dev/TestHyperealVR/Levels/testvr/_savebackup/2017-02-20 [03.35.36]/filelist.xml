@@ -1,0 +1,6 @@
+<download name="testvr" type="Map">
+ <index src="filelist.xml" dest="filelist.xml"/>
+ <files>
+  <file src="level.pak" dest="level.pak" size="39898" md5="6b8458a450baa3c45f4aba3b18a307b0"/>
+ </files>
+</download>
