@@ -1,0 +1,8 @@
+{
+    "none": {
+        "Implementation": [
+            "Source/HyperealVRDevice.cpp",
+            "Source/HyperealVRDevice.h"
+        ]
+    }
+}

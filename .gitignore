@@ -325,6 +325,7 @@ Lumberyard/1.7.0.0/dev/Tools
 Lumberyard/1.7.0.0/dev/*.*
 Lumberyard/1.7.0.0/dev/wscript
 
+!Lumberyard/1.7.0.0/dev/SetupAssistantConfig.json
 Lumberyard/1.7.0.0/dev/Gems/*
 !Lumberyard/1.7.0.0/dev/Gems/HyperealVR
 

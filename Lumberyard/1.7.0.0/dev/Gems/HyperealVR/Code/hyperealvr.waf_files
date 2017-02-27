@@ -10,9 +10,7 @@
             "Include/HyperealVR/HyperealVRBus.h"
         ],
         "Source": [
-            "Source/HyperealVRGem.cpp",
-            "Source/HyperealVRDevice.cpp",
-            "Source/HyperealVRDevice.h"
+            "Source/HyperealVRGem.cpp"
         ]
     }
 }
