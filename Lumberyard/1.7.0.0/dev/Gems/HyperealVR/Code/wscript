@@ -4,9 +4,9 @@ def build(bld):
     bld.DefineGem(
         # Add custom build options here
         includes    = [bld.Path('Code/CryEngine/CryCommon'),
-                       bld.Path('Code/CryEngine/CryAction')],
-		
+                       bld.Path('Code/CryEngine/CryAction'),
+					   bld.Path('Code/SDKs/HvrAPI/Include')],
 		# is defined for windows only.
-        win_uselib      = ['HYPEREALVR'],
+        win_uselib      = ['HVRAPI'],
         win_file_list   = ['hyperealvr_win.waf_files'],
     )

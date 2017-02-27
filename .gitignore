@@ -304,7 +304,14 @@ $RECYCLE.BIN/
 
 
 Lumberyard/1.7.0.0/dev/Code
-Lumberyard/1.7.0.0/dev/_WAF_
+Lumberyard/1.7.0.0/dev/_WAF_/*.*
+Lumberyard/1.7.0.0/dev/_WAF_/3rd_party/*.*
+Lumberyard/1.7.0.0/dev/_WAF_/android
+Lumberyard/1.7.0.0/dev/_WAF_/appletv
+Lumberyard/1.7.0.0/dev/_WAF_/ios
+Lumberyard/1.7.0.0/dev/_WAF_/msbuild
+Lumberyard/1.7.0.0/dev/_WAF_/specs
+
 Lumberyard/1.7.0.0/dev/AssetProcessorTemp
 Lumberyard/1.7.0.0/dev/Bin64
 Lumberyard/1.7.0.0/dev/Bin64vc120
@@ -325,6 +332,7 @@ Lumberyard/1.7.0.0/dev/Tools
 Lumberyard/1.7.0.0/dev/*.*
 Lumberyard/1.7.0.0/dev/wscript
 
+!Lumberyard/1.7.0.0/dev/_WAF_/3rd_party/hvrapi.json
 !Lumberyard/1.7.0.0/dev/SetupAssistantConfig.json
 Lumberyard/1.7.0.0/dev/Gems/*
 !Lumberyard/1.7.0.0/dev/Gems/HyperealVR

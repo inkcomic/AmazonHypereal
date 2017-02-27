@@ -24,7 +24,7 @@
 				<Class name="AZStd::string" field="dynamicLibraryPath" value="Gem.HMDFramework.24a3427048184feba39ba2cf75d45c4c.v0.1.0" type="{EF8FF807-DDEE-4EB0-B678-4CA3A2C490A4}"/>
 			</Class>
 			<Class name="DynamicModuleDescriptor" field="element" type="{D2932FA3-9942-4FD2-A703-2E750F57C003}">
-				<Class name="AZStd::string" field="dynamicLibraryPath" value="Gem.HyperealVR.378c5c15ab614569b6adf976c41f36e5.v0.1.0" type="{EF8FF807-DDEE-4EB0-B678-4CA3A2C490A4}"/>
+				<Class name="AZStd::string" field="dynamicLibraryPath" value="Gem.HyperealVR.378c5c15ab614569b6adf976c41f36e5.v1.0.0" type="{EF8FF807-DDEE-4EB0-B678-4CA3A2C490A4}"/>
 			</Class>
 			<Class name="DynamicModuleDescriptor" field="element" type="{D2932FA3-9942-4FD2-A703-2E750F57C003}">
 				<Class name="AZStd::string" field="dynamicLibraryPath" value="Gem.OpenVR.3b1c41404cb147fe87e25bf72e035faa.v1.0.0" type="{EF8FF807-DDEE-4EB0-B678-4CA3A2C490A4}"/>

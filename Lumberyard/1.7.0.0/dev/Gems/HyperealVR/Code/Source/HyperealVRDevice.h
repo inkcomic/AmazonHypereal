@@ -5,6 +5,7 @@
 #include <AzCore/Component/Component.h>
 #include "HMDBus.h"
 #include <HyperealVR/HyperealVRBus.h>
+#include <Hypereal_VR.h>
 
 namespace HyperealVR
 {
