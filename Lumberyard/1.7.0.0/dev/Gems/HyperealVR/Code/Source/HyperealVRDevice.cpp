@@ -6,6 +6,33 @@
 
 #include "HyperealVRDevice.h"
 
+#define HY_RELEASE(p) {if(p != nullptr) p->Release(); p = nullptr;}
+#define DEFAULT_IPD 0.064f;
+
+
+HyFov ComputeSymmetricalFov(const HyFov& fovLeftEye, const HyFov& fovRightEye)
+{
+	const float stereoDeviceAR = 1.7777f;
+
+	HyFov fovMax;
+	fovMax.m_upTan = max(fovLeftEye.m_upTan, fovRightEye.m_upTan);
+	fovMax.m_downTan = max(fovLeftEye.m_downTan, fovRightEye.m_downTan);
+	fovMax.m_leftTan = max(fovLeftEye.m_leftTan, fovRightEye.m_leftTan);
+	fovMax.m_rightTan = max(fovLeftEye.m_rightTan, fovRightEye.m_rightTan);
+
+	const float combinedTanHalfFovHorizontal = max(fovMax.m_leftTan, fovMax.m_rightTan);
+	const float combinedTanHalfFovVertical = max(fovMax.m_upTan, fovMax.m_downTan);
+
+	HyFov fovSym;
+	fovSym.m_upTan = fovSym.m_downTan = combinedTanHalfFovVertical * 1.f;
+
+	fovSym.m_leftTan = fovSym.m_rightTan = fovSym.m_upTan / (2.f / stereoDeviceAR);
+
+	CryLog("[Hypereal] Fov: Up/Down tans [%f] Left/Right tans [%f]", fovSym.m_upTan, fovSym.m_leftTan);
+	return fovSym;
+}
+
+
 namespace HyperealVR
 {
     void HyperealVRDevice::Reflect(AZ::ReflectContext* context)
@@ -67,10 +94,86 @@ namespace HyperealVR
 
 	bool HyperealVRDevice::AttemptInit()
 	{
-// 		LogMessage("Attempting to initialize OpenVR SDK");
-// 
-// 		bool success = false;
-// 
+ 		//LogMessage("Attempting to initialize OpenVR SDK");
+
+		bool success = false;
+
+
+		{
+			for (int i = 0; i < 2; ++i)
+			{
+				m_RTDesc[i].m_uvSize = HyVec2{ 1.f, 1.f };
+				m_RTDesc[i].m_uvOffset = HyVec2{ 0.f, 0.f };
+			}
+
+			HyResult startResult = HyStartup();
+			m_bVRInitialized = hySucceeded(startResult);
+			if (!m_bVRInitialized)
+			{
+				gEnv->pLog->Log("[HMD][Hypereal] HyperealVR Failed to Startup.");
+				return false;
+			}
+
+			gEnv->pLog->Log("[HMD][Hypereal] HyperealVR Startup sucessfully.");
+
+			m_bPlayAreaValid = false;
+			m_nPlayAreaVertexCount = 0;
+
+
+			HyResult hr = HyCreateInterface(sch_HyDevice_Version, 0, (void**)&m_pVrDevice);
+
+			if (!hySucceeded(hr))
+			{
+				gEnv->pLog->Log("[HMD][Hypereal] HyCreateInterface failed.");
+				return false;
+			}
+
+
+
+			memset(&m_VrDeviceInfo, 0, sizeof(DeviceInfo));
+
+			m_pVrDevice->GetIntValue(HY_PROPERTY_DEVICE_RESOLUTION_X_INT, m_VrDeviceInfo.DeviceResolutionX);
+			m_pVrDevice->GetIntValue(HY_PROPERTY_DEVICE_RESOLUTION_Y_INT, m_VrDeviceInfo.DeviceResolutionY);
+			m_pVrDevice->GetFloatArray(HY_PROPERTY_DEVICE_LEFT_EYE_FOV_FLOAT4_ARRAY, m_VrDeviceInfo.Fov[HY_EYE_LEFT].val, 4);
+			m_pVrDevice->GetFloatArray(HY_PROPERTY_DEVICE_RIGHT_EYE_FOV_FLOAT4_ARRAY, m_VrDeviceInfo.Fov[HY_EYE_RIGHT].val, 4);
+
+
+
+			m_eyeFovSym = ComputeSymmetricalFov(m_VrDeviceInfo.Fov[HY_EYE_LEFT], m_VrDeviceInfo.Fov[HY_EYE_RIGHT]);
+			//set for  generic HMD device
+			m_deviceInfo.renderWidth = (uint)m_VrDeviceInfo.DeviceResolutionX;
+			m_deviceInfo.renderHeight = (uint)m_VrDeviceInfo.DeviceResolutionY;
+
+			m_deviceInfo.manufacturer = GetTrackedDeviceCharPointer(HY_PROPERTY_DEVICE_MANUFACTURER_STRING);
+			m_deviceInfo.productName = GetTrackedDeviceCharPointer(HY_PROPERTY_DEVICE_PRODUCT_NAME_STRING);
+			m_deviceInfo.fovH = 2.0f * atanf(m_eyeFovSym.m_leftTan);
+			m_deviceInfo.fovV = 2.0f * atanf(m_eyeFovSym.m_upTan);
+
+
+			bool isConnected = false;
+			hr = m_pVrDevice->GetBoolValue(HY_PROPERTY_HMD_CONNECTED_BOOL, isConnected);
+			if (hySucceeded(hr) && isConnected)
+			{
+				//m_pVrDevice->ConfigureTrackingOrigin(m_pTrackingOriginCVar->GetIVal() == (int)EHmdTrackingOrigin::Floor == 1 ? HY_TRACKING_ORIGIN_FLOOR : HY_TRACKING_ORIGIN_EYE);
+
+				RebuildPlayArea();
+				gEnv->pLog->Log("[HMD][Hypereal] EnableStereo successfully.");
+			}
+			else
+			{
+				gEnv->pLog->Log("[HMD][Hypereal] HyperealVR HMD is Disconnected.");
+			}
+
+#if CRY_PLATFORM_WINDOWS
+			// the following is (hopefully just) a (temporary) hack to shift focus back to the CryEngine window, after (potentially) spawning the SteamVR Compositor
+			if (!gEnv->IsEditor())
+			{
+				LockSetForegroundWindow(LSFW_UNLOCK);
+				SetForegroundWindow((HWND)gEnv->pSystem->GetHWND());
+			}
+#endif
+
+		}
 // 		vr::EVRInitError error = vr::EVRInitError::VRInitError_None;
 // 		m_system = vr::VR_Init(&error, vr::EVRApplicationType::VRApplication_Scene);
 // 
@@ -129,20 +232,16 @@ namespace HyperealVR
 // 				}
 // 			}
 // 		}
-// 
-// 		if (!success)
-// 		{
-// 			// Something went wrong during initialization.
-// 			if (error != vr::EVRInitError::VRInitError_None)
-// 			{
-// 				LogMessage("Unable to initialize VR runtime: %s", vr::VR_GetVRInitErrorAsEnglishDescription(error));
-// 			}
-// 
-// 			Shutdown();
-// 		}
-// 
-// 		return success;
-		return true;
+ 
+ 		if (!success)
+ 		{
+
+ 		//	LogMessage("Unable to initialize VR runtime: %s", vr::VR_GetVRInitErrorAsEnglishDescription(error));
+
+ 			Shutdown();
+ 		}
+ 
+ 		return success;
 	}
 
 	AZ::VR::HMDInitBus::HMDInitPriority HyperealVRDevice::GetInitPriority() const
@@ -157,6 +256,16 @@ namespace HyperealVR
 // 		AZ::VR::HMDDeviceRequestBus::Handler::BusDisconnect();
 // 		OpenVRRequestBus::Handler::BusDisconnect();
 // 		vr::VR_Shutdown();
+
+		HY_RELEASE(m_pVrDevice);
+
+		m_bVRSystemValid = false;
+
+		if (m_bVRInitialized)
+		{
+			m_bVRInitialized = false;
+			HyShutdown();
+		}
 	}
 
 
@@ -411,4 +520,40 @@ namespace HyperealVR
 		return true;/* m_system != nullptr;*/
 	}
 
+	void HyperealVRDevice::RebuildPlayArea()
+	{
+		if (m_pPlayAreaVertices)
+		{
+			delete[] m_pPlayAreaVertices;
+			m_pPlayAreaVertices = nullptr;
+		}
+
+		if (hySucceeded(m_pVrDevice->GetIntValue(HY_PROPERTY_CHAPERONE_VERTEX_COUNT_INT, m_nPlayAreaVertexCount)) && m_nPlayAreaVertexCount != 0)
+		{
+			m_pPlayAreaVertices = new HyVec2[m_nPlayAreaVertexCount];
+			HyResult r = m_pVrDevice->GetFloatArray(HY_PROPERTY_CHAPERONE_VERTEX_VEC2_ARRAY, reinterpret_cast<float*>(m_pPlayAreaVertices), (uint)m_nPlayAreaVertexCount * 2);
+
+			m_bPlayAreaValid = hySucceeded(r);
+
+			if (!m_bPlayAreaValid)
+			{
+				delete[] m_pPlayAreaVertices;
+				m_pPlayAreaVertices = nullptr;
+			}
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	const char* HyperealVRDevice::GetTrackedDeviceCharPointer(int nProperty)
+	{
+		int realStrLen = 512;
+		//m_pVrDevice->GetStringValue(HY_PROPERTY_DEVICE_MANUFACTURER_STRING, 0, 0, &realStrLen);
+
+		//if (realStrLen == 0)
+		//	return nullptr;
+
+		char* pBuffer = new char[realStrLen];
+		m_pVrDevice->GetStringValue(HY_PROPERTY_DEVICE_MANUFACTURER_STRING, pBuffer, realStrLen, &realStrLen);
+		return const_cast<char*>(pBuffer);
+	}
 }

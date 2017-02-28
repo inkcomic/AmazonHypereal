@@ -74,5 +74,34 @@ namespace HyperealVR
 // 		OpenVRController* m_controller;
 		AZ::VR::TrackingState m_trackingState; ///< Most recent tracking state of the HMD (not including any connected controllers).
 		AZ::VR::HMDDeviceInfo m_deviceInfo;
+
+
+		//////////////////////////////////////////////////////////////////////////
+		//HVR device member
+		struct DeviceInfo
+		{
+			int64 DeviceResolutionX;
+			int64 DeviceResolutionY;
+			HyFov Fov[HY_EYE_MAX];
+		};
+		HyDevice *m_pVrDevice;
+		DeviceInfo m_VrDeviceInfo;
+		HyGraphicsContext *m_pVrGraphicsCxt;
+		HyGraphicsContextDesc m_VrGraphicsCxtDesc;
+
+		HyFov m_eyeFovSym;
+		float m_fPixelDensity;
+		bool m_bVRInitialized;
+		bool m_bVRSystemValid;
+		bool m_bIsQuitting;
+		HyTextureDesc m_RTDesc[2];
+		float m_fInterpupillaryDistance;
+
+		HyVec2 *m_pPlayAreaVertices;
+		int64 m_nPlayAreaVertexCount;
+		bool m_bPlayAreaValid;
+
+		void RebuildPlayArea();
+		const char* GetTrackedDeviceCharPointer(int nProperty);
     };
 }
