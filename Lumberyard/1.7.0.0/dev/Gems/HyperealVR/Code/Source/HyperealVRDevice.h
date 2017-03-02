@@ -2,9 +2,13 @@
 #pragma once
 
 #include <AzCore/Component/Component.h>
-#include <AzCore/Component/Component.h>
-#include "HMDBus.h"
 #include <HyperealVR/HyperealVRBus.h>
+#include "HMDBus.h"
+
+#include <HMDBus.h>
+#include <VRControllerBus.h>
+#include <CrySystemBus.h>
+
 #include <Hypereal_VR.h>
 
 namespace HyperealVR
@@ -75,6 +79,25 @@ namespace HyperealVR
 		AZ::VR::TrackingState m_trackingState; ///< Most recent tracking state of the HMD (not including any connected controllers).
 		AZ::VR::HMDDeviceInfo m_deviceInfo;
 
+		// Tracking related:
+		enum EDevice
+		{
+			Hmd,
+			Left_Controller,
+			Right_Controller,
+			Total_Count
+		};
+		HyTrackingState			m_rTrackedDevicePose[EDevice::Total_Count];
+		AZ::VR::TrackingState        m_nativeStates[EDevice::Total_Count];
+		AZ::VR::TrackingState        m_localStates[EDevice::Total_Count];
+		AZ::VR::TrackingState        m_nativeEyePoseStates;
+		AZ::VR::TrackingState        m_localEyePoseStates;
+		
+		HyPose	m_CurDevicePose[EDevice::Total_Count];
+		bool	m_IsDevicePositionTracked[EDevice::Total_Count];
+		bool	m_IsDeviceRotationTracked[EDevice::Total_Count];
+
+// 		AZ::VR::TrackingState        m_disabledTrackingState;
 
 		//////////////////////////////////////////////////////////////////////////
 		//HVR device member
@@ -89,6 +112,8 @@ namespace HyperealVR
 		HyGraphicsContext *m_pVrGraphicsCxt;
 		HyGraphicsContextDesc m_VrGraphicsCxtDesc;
 
+		int                     m_lastFrameID_UpdateTrackingState;
+
 		HyFov m_eyeFovSym;
 		float m_fPixelDensity;
 		bool m_bVRInitialized;
@@ -101,7 +126,28 @@ namespace HyperealVR
 		int64 m_nPlayAreaVertexCount;
 		bool m_bPlayAreaValid;
 
+		AZ::Quaternion					m_qBaseOrientation;
+		AZ::Vector3						m_vBaseOffset;
+		float					m_fMeterToWorldScale;
+		bool					m_bPosTrackingEnable;
+		bool					m_bResetOrientationKeepPitchAndRoll;
+
+		// Controller related:
+// 		Controller              m_controller;
+// 		bool                    m_hasInputFocus;
+// 		bool                    m_hmdTrackingDisabled;
+// 		float                   m_hmdQuadDistance;
+// 		float                   m_hmdQuadWidth;
+// 		int                     m_hmdQuadAbsolute;
+
 		void RebuildPlayArea();
 		const char* GetTrackedDeviceCharPointer(int nProperty);
+		inline void CopyPoseState(AZ::VR::PoseState& world, AZ::VR::PoseState& hmd, HyTrackingState& source);
+
+		float GetInterpupillaryDistance() const;
+
+		void CreateGraphicsContext(void* graphicsDevice);
+		void ReleaseGraphicsContext();
+		void UpdateInternal();
     };
 }

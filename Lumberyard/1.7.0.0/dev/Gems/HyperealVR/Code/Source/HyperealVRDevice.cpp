@@ -3,38 +3,101 @@
 
 #include <AzCore/Serialization/SerializeContext.h>
 #include <AzCore/Serialization/EditContext.h>
-
+#include <AzCore/Math/Matrix3x3.h>
+#include <AzCore/Math/Matrix4x4.h>
+#include <AzCore/Math/MathUtils.h>
+#include <MathConversion.h>
 #include "HyperealVRDevice.h"
+#include <d3d11.h>
+
+
 
 #define HY_RELEASE(p) {if(p != nullptr) p->Release(); p = nullptr;}
 #define DEFAULT_IPD 0.064f;
 
-
-HyFov ComputeSymmetricalFov(const HyFov& fovLeftEye, const HyFov& fovRightEye)
-{
-	const float stereoDeviceAR = 1.7777f;
-
-	HyFov fovMax;
-	fovMax.m_upTan = max(fovLeftEye.m_upTan, fovRightEye.m_upTan);
-	fovMax.m_downTan = max(fovLeftEye.m_downTan, fovRightEye.m_downTan);
-	fovMax.m_leftTan = max(fovLeftEye.m_leftTan, fovRightEye.m_leftTan);
-	fovMax.m_rightTan = max(fovLeftEye.m_rightTan, fovRightEye.m_rightTan);
-
-	const float combinedTanHalfFovHorizontal = max(fovMax.m_leftTan, fovMax.m_rightTan);
-	const float combinedTanHalfFovVertical = max(fovMax.m_upTan, fovMax.m_downTan);
-
-	HyFov fovSym;
-	fovSym.m_upTan = fovSym.m_downTan = combinedTanHalfFovVertical * 1.f;
-
-	fovSym.m_leftTan = fovSym.m_rightTan = fovSym.m_upTan / (2.f / stereoDeviceAR);
-
-	CryLog("[Hypereal] Fov: Up/Down tans [%f] Left/Right tans [%f]", fovSym.m_upTan, fovSym.m_leftTan);
-	return fovSym;
-}
-
-
 namespace HyperealVR
 {
+
+
+	// -------------------------------------------------------------------------
+	inline  AZ::Quaternion HmdQuatToWorldQuat(const  AZ::Quaternion& quat)
+	{
+		AZ::Matrix3x3 m33 = AZ::Matrix3x3::CreateFromQuaternion(quat); 
+		AZ::Vector3 column1 = -m33.GetColumn(2);
+		m33.SetColumn(2,m33.GetColumn(1));
+		m33.SetColumn(1,column1);
+		AZ::Quaternion rotation = AZ::Quaternion::CreateFromMatrix3x3(m33);
+		return  AZ::Quaternion::CreateRotationX(gf_PI * 0.5f) *  rotation;
+	}
+
+	inline  AZ::Quaternion HYQuatToQuat(const HyQuat& q) {
+		return HmdQuatToWorldQuat(AZ::Quaternion(q.w, q.x, q.y, q.z));
+	}
+
+	inline AZ::Vector3 HYVec3ToVec3(const HyVec3& v) {
+		return AZ::Vector3(v.x, -v.z, v.y);
+	}
+	inline HyQuat QuatToHYQuat(const AZ::Quaternion &q) {
+		AZ::Quaternion invQuat = HmdQuatToWorldQuat(q).GetInverseFull(); 
+		HyQuat hyQuat;
+		hyQuat.w = invQuat.GetW();
+		hyQuat.x = invQuat.GetX();
+		hyQuat.y = invQuat.GetY();
+		hyQuat.z = invQuat.GetZ();
+		return hyQuat;
+	}
+	inline HyVec3 Vec3ToHYVec3(const AZ::Vector3& v) {
+		HyVec3 hyVec3;
+		hyVec3.x = v.GetX();
+		hyVec3.y = v.GetZ();
+		hyVec3.z = -v.GetY();
+		return hyVec3;
+	}
+	// -------------------------------------------------------------------------
+	void HyperealVRDevice::CopyPoseState(AZ::VR::PoseState& world, AZ::VR::PoseState& hmd, HyTrackingState& src)
+	{
+		AZ::Quaternion srcQuat = HYQuatToQuat(src.m_pose.m_rotation);
+		AZ::Vector3 srcPos = HYVec3ToVec3(src.m_pose.m_position);
+		AZ::Vector3 srcAngVel = HYVec3ToVec3(src.m_angularVelocity);
+		AZ::Vector3 srcAngAcc = HYVec3ToVec3(src.m_angularAcceleration);
+		AZ::Vector3 srcLinVel = HYVec3ToVec3(src.m_linearVelocity);
+		AZ::Vector3 srcLinAcc = HYVec3ToVec3(src.m_linearAcceleration);
+
+		hmd.orientation = srcQuat;
+		hmd.position = srcPos;
+
+		//hmd.linearVelocity = srcLinVel;
+		//hmd.angularVelocity = srcAngVel;
+
+		world.position = /*HmdVec3ToWorldVec3*/(hmd.position);
+		world.orientation = /*HmdQuatToWorldQuat*/(hmd.orientation);
+	//	world.linearVelocity = /*HmdVec3ToWorldVec3*/(hmd.linearVelocity);
+	//	world.angularVelocity = /*HmdVec3ToWorldVec3*/(hmd.angularVelocity);
+	}
+
+	HyFov ComputeSymmetricalFov(const HyFov& fovLeftEye, const HyFov& fovRightEye)
+	{
+		const float stereoDeviceAR = 1.7777f;
+
+		HyFov fovMax;
+		fovMax.m_upTan = max(fovLeftEye.m_upTan, fovRightEye.m_upTan);
+		fovMax.m_downTan = max(fovLeftEye.m_downTan, fovRightEye.m_downTan);
+		fovMax.m_leftTan = max(fovLeftEye.m_leftTan, fovRightEye.m_leftTan);
+		fovMax.m_rightTan = max(fovLeftEye.m_rightTan, fovRightEye.m_rightTan);
+
+		const float combinedTanHalfFovHorizontal = max(fovMax.m_leftTan, fovMax.m_rightTan);
+		const float combinedTanHalfFovVertical = max(fovMax.m_upTan, fovMax.m_downTan);
+
+		HyFov fovSym;
+		fovSym.m_upTan = fovSym.m_downTan = combinedTanHalfFovVertical * 1.f;
+
+		fovSym.m_leftTan = fovSym.m_rightTan = fovSym.m_upTan / (2.f / stereoDeviceAR);
+
+		CryLog("[Hypereal] Fov: Up/Down tans [%f] Left/Right tans [%f]", fovSym.m_upTan, fovSym.m_leftTan);
+		return fovSym;
+	}
+
+
     void HyperealVRDevice::Reflect(AZ::ReflectContext* context)
     {
         if (AZ::SerializeContext* serialize = azrtti_cast<AZ::SerializeContext*>(context))
@@ -77,6 +140,28 @@ namespace HyperealVR
 
     void HyperealVRDevice::Init()
     {
+		m_lastFrameID_UpdateTrackingState = -1;
+
+// 		m_hasInputFocus = (false);
+// 		m_hmdTrackingDisabled = (false);
+// 		m_hmdQuadDistance = (CPlugin_Hypereal::s_hmd_quad_distance);
+// 		m_hmdQuadWidth = (CPlugin_Hypereal::s_hmd_quad_width);
+// 		m_hmdQuadAbsolute = (CPlugin_Hypereal::s_hmd_quad_absolute);
+		m_pVrDevice = nullptr;
+		m_pVrGraphicsCxt = nullptr;
+		m_pPlayAreaVertices = nullptr;
+		m_bPlayAreaValid = false;
+		m_fPixelDensity = 1.0f;
+		m_bVRInitialized = nullptr;
+		m_bVRSystemValid = nullptr;
+		m_bIsQuitting = false;
+		m_fInterpupillaryDistance = -1.0f;
+		m_qBaseOrientation = AZ::Quaternion(IDENTITY);;
+		m_vBaseOffset = AZ::Vector3(IDENTITY);
+		m_fMeterToWorldScale = 1.f;
+		m_bPosTrackingEnable = true;
+		m_bResetOrientationKeepPitchAndRoll = false;
+
 // 		memset(m_trackedDevicePose, 0, sizeof(m_trackedDevicePose));
 // 		m_controller = new OpenVRController(m_system); // Note that this will be deleted by the input system and should not be deleted here.
     }
@@ -94,6 +179,7 @@ namespace HyperealVR
 
 	bool HyperealVRDevice::AttemptInit()
 	{
+		
  		//LogMessage("Attempting to initialize OpenVR SDK");
 
 		bool success = false;
@@ -158,6 +244,17 @@ namespace HyperealVR
 
 				RebuildPlayArea();
 				gEnv->pLog->Log("[HMD][Hypereal] EnableStereo successfully.");
+
+
+				SetTrackingLevel(AZ::VR::HMDTrackingLevel::kFloor); 
+				// Default to a seated experience.
+				 
+				// Connect to the HMDDeviceBus in order to get HMD messages from the rest of the VR system.
+				AZ::VR::HMDDeviceRequestBus::Handler::BusConnect();
+				//m_controller->ConnectToControllerBus();
+				HyperealVRRequestBus::Handler::BusConnect();
+				 
+				success = true;
 			}
 			else
 			{
@@ -253,9 +350,9 @@ namespace HyperealVR
 	{
 // 		m_controller->DisconnectFromControllerBus();
 // 
-// 		AZ::VR::HMDDeviceRequestBus::Handler::BusDisconnect();
-// 		OpenVRRequestBus::Handler::BusDisconnect();
-// 		vr::VR_Shutdown();
+ 		AZ::VR::HMDDeviceRequestBus::Handler::BusDisconnect();
+		HyperealVRRequestBus::Handler::BusDisconnect();
+
 
 		HY_RELEASE(m_pVrDevice);
 
@@ -268,10 +365,57 @@ namespace HyperealVR
 		}
 	}
 
-
+	// -------------------------------------------------------------------------
+	float HyperealVRDevice::GetInterpupillaryDistance() const
+	{
+		if (m_fInterpupillaryDistance > 0.01f)
+			return m_fInterpupillaryDistance;
+		if (m_bVRSystemValid)
+		{
+			bool isConnected = false;
+			HyResult hr = m_pVrDevice->GetBoolValue(HY_PROPERTY_HMD_CONNECTED_BOOL, isConnected);
+			if (hySucceeded(hr) && isConnected)
+			{
+				float ipd = DEFAULT_IPD;
+				hr = m_pVrDevice->GetFloatValue(HY_PROPERTY_IPD_FLOAT, ipd);
+				if (hySucceeded(hr))
+					return ipd;
+			}
+		}
+		return DEFAULT_IPD;
+	}
 
 	void HyperealVRDevice::GetPerEyeCameraInfo(const EStereoEye eye, const float nearPlane, const float farPlane, AZ::VR::PerEyeCameraInfo& cameraInfo)
 	{
+		if (m_pVrGraphicsCxt == nullptr)
+			return;
+
+		float fNear = nearPlane;
+		float fFar = farPlane;
+		HyMat4 proj;
+		m_pVrGraphicsCxt->GetProjectionMatrix(m_VrDeviceInfo.Fov[eye], fNear, fFar, true, proj);
+		cameraInfo.fov = 2.0f * atan(1.0f / proj.m[1][1]);
+		cameraInfo.aspectRatio = proj.m[1][1] / proj.m[0][0];
+		const float denom = 1.0f / proj.m[1][1];
+		cameraInfo.frustumPlane.horizontalDistance = proj.m[0][2] * denom * cameraInfo.aspectRatio;
+		cameraInfo.frustumPlane.verticalDistance = proj.m[1][2] * denom;
+
+		// Read the inter-pupilar distance in order to determine the eye offset.
+		{
+			float eyeDistance = GetInterpupillaryDistance();
+		 	float xPosition = 0.0f;
+		 	if (eye == STEREO_EYE_LEFT)
+		 	{
+		 		xPosition = -eyeDistance * 0.5f;
+		 	}
+		 	else
+		 	{
+		 		xPosition = eyeDistance * 0.5f;
+		 	}
+		 
+		 	cameraInfo.eyeOffset = AZ::Vector3(xPosition, 0.0f, 0.0f);
+		}
+
 // 		float left, right, top, bottom;
 // 		m_system->GetProjectionRaw(MapOpenVREyeToLY(eye), &left, &right, &top, &bottom);
 // 
@@ -297,53 +441,184 @@ namespace HyperealVR
 // 			cameraInfo.eyeOffset = AZ::Vector3(xPosition, 0.0f, 0.0f);
 // 		}
 	}
+	void HyperealVRDevice::CreateGraphicsContext(void* graphicsDevice)
+	{
+		if (nullptr == m_pVrDevice)
+			return;
+
+		//graphic ctx should be ready
+		HyGraphicsAPI graphicsAPI = HY_GRAPHICS_UNKNOWN;
+
+		graphicsAPI = HY_GRAPHICS_D3D11;
+
+		{
+			m_VrGraphicsCxtDesc.m_mirrorWidth = gEnv->pRenderer->GetWidth();
+			m_VrGraphicsCxtDesc.m_mirrorHeight = gEnv->pRenderer->GetHeight();
+		}
+
+		m_VrGraphicsCxtDesc.m_graphicsDevice = graphicsDevice;
+		m_VrGraphicsCxtDesc.m_graphicsAPI = graphicsAPI;
+		m_VrGraphicsCxtDesc.m_pixelFormat = HY_TEXTURE_R8G8B8A8_UNORM_SRGB;
+		m_VrGraphicsCxtDesc.m_pixelDensity = m_fPixelDensity;
+		m_VrGraphicsCxtDesc.m_flags = 0;
+
+		HyResult hr = m_pVrDevice->CreateGraphicsContext(m_VrGraphicsCxtDesc, &m_pVrGraphicsCxt);
+		if (!hySucceeded(hr))
+		{
+			gEnv->pLog->Log("[HMD][Hypereal] CreateGraphicsContext failed.");
+			return;
+		}
+	}
+
+	void HyperealVRDevice::ReleaseGraphicsContext()
+	{
+		HY_RELEASE(m_pVrGraphicsCxt);
+	}
 
 	bool HyperealVRDevice::CreateRenderTargets(void* renderDevice, const TextureDesc& desc, size_t eyeCount, AZ::VR::HMDRenderTarget* renderTargets[])
 	{
-// 		for (size_t i = 0; i < eyeCount; ++i)
-// 		{
-// 			ID3D11Device* d3dDevice = static_cast<ID3D11Device*>(renderDevice);
-// 
-// 			D3D11_TEXTURE2D_DESC textureDesc;
-// 			textureDesc.Width = desc.width;
-// 			textureDesc.Height = desc.height;
-// 			textureDesc.MipLevels = 1;
-// 			textureDesc.ArraySize = 1;
-// 			textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-// 			textureDesc.SampleDesc.Count = 1;
-// 			textureDesc.SampleDesc.Quality = 0;
-// 			textureDesc.Usage = D3D11_USAGE_DEFAULT;
-// 			textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
-// 			textureDesc.CPUAccessFlags = 0;
-// 			textureDesc.MiscFlags = 0;
-// 
-// 			ID3D11Texture2D* texture;
-// 			d3dDevice->CreateTexture2D(&textureDesc, nullptr, &texture);
-// 
-// 			// Create a OpenVR texture that is associated with this new D3D texture.
-// 			vr::Texture_t* deviceTexture = new vr::Texture_t();
-// 			deviceTexture->eColorSpace = vr::EColorSpace::ColorSpace_Auto;
-// 			deviceTexture->eType = vr::EGraphicsAPIConvention::API_DirectX;
-// 			deviceTexture->handle = texture;
-// 
-// 			// We only create one texture for OpenVR (no swapchain).
-// 			renderTargets[i]->deviceSwapTextureSet = deviceTexture;
-// 			renderTargets[i]->numTextures = 1;
-// 			renderTargets[i]->textures = new void*[1];
-// 			renderTargets[i]->textures[0] = texture;
-// 		}
+		ID3D11Device* d3dDevice = static_cast<ID3D11Device*>(renderDevice);
+
+		CreateGraphicsContext(renderDevice);
+		
+		for (int i = 0; i < 2; ++i)
+		{
+			m_RTDesc[i].m_uvSize = HyVec2{ 1.f, 1.f };
+			m_RTDesc[i].m_uvOffset = HyVec2{ 0.f, 0.f };
+		}
+
+ 		for (size_t i = 0; i < eyeCount; ++i)
+ 		{
+ 
+ 			D3D11_TEXTURE2D_DESC textureDesc;
+ 			textureDesc.Width = desc.width;
+ 			textureDesc.Height = desc.height;
+ 			textureDesc.MipLevels = 1;
+ 			textureDesc.ArraySize = 1;
+ 			textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+ 			textureDesc.SampleDesc.Count = 1;
+ 			textureDesc.SampleDesc.Quality = 0;
+ 			textureDesc.Usage = D3D11_USAGE_DEFAULT;
+ 			textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+ 			textureDesc.CPUAccessFlags = 0;
+ 			textureDesc.MiscFlags = 0;
+ 
+ 			ID3D11Texture2D* texture;
+ 			d3dDevice->CreateTexture2D(&textureDesc, nullptr, &texture);
+ 
+
+			m_RTDesc[i].m_texture = texture;
+			
+//  			// Create a OpenVR texture that is associated with this new D3D texture.
+//  			vr::Texture_t* deviceTexture = new vr::Texture_t();
+//  			deviceTexture->eColorSpace = vr::EColorSpace::ColorSpace_Auto;
+//  			deviceTexture->eType = vr::EGraphicsAPIConvention::API_DirectX;
+//  			deviceTexture->handle = texture;
+ 
+ 			// We only create one texture for OpenVR (no swapchain).
+ 			renderTargets[i]->deviceSwapTextureSet = &m_RTDesc[i];
+ 			renderTargets[i]->numTextures = 1;
+ 			renderTargets[i]->textures = new void*[1];
+ 			renderTargets[i]->textures[0] = texture;
+ 		}
 
 		return true;
 	}
 
 	void HyperealVRDevice::DestroyRenderTarget(AZ::VR::HMDRenderTarget& renderTarget)
 	{
-// 		vr::TextureID_t* deviceTexture = static_cast<vr::TextureID_t*>(renderTarget.deviceSwapTextureSet);
-// 		SAFE_DELETE(deviceTexture);
+		ReleaseGraphicsContext();
+		renderTarget.deviceSwapTextureSet = nullptr;
+
+ 		//vr::TextureID_t* deviceTexture = static_cast<vr::TextureID_t*>(renderTarget.deviceSwapTextureSet);
+ 		//SAFE_DELETE(deviceTexture);
 	}
 
 	void HyperealVRDevice::Update()
 	{
+		UpdateInternal();
+		const int frameId = gEnv->pRenderer->GetFrameID(false);
+
+		{
+			if (m_pVrDevice)
+			{
+				//m_pVrDevice->ConfigureTrackingOrigin(m_pTrackingOriginCVar->GetIVal() == (int)EHmdTrackingOrigin::Floor == 1 ? HY_TRACKING_ORIGIN_FLOOR : HY_TRACKING_ORIGIN_EYE);
+
+				static const HySubDevice Devices[EDevice::Total_Count] =
+				{ HY_SUBDEV_HMD, HY_SUBDEV_CONTROLLER_LEFT, HY_SUBDEV_CONTROLLER_RIGHT };
+
+				HyTrackingState trackingState;
+				for (uint32_t i = 0; i < EDevice::Total_Count; i++)
+				{
+					HyResult r = m_pVrDevice->GetTrackingState(Devices[i], frameId, trackingState);
+					if (hySucceeded(r))
+					{
+						m_rTrackedDevicePose[i] = trackingState;
+						m_IsDevicePositionTracked[i] = ((HY_TRACKING_POSITION_TRACKED & trackingState.m_flags) != 0);
+						m_IsDeviceRotationTracked[i] = ((HY_TRACKING_ROTATION_TRACKED & trackingState.m_flags) != 0);
+
+
+// 						m_localStates[i].statusFlags = m_nativeStates[i].statusFlags = ((m_IsDeviceRotationTracked[EDevice::Hmd]) ? eHmdStatus_OrientationTracked : 0) |
+// 							((m_IsDevicePositionTracked[EDevice::Hmd]) ? eHmdStatus_PositionTracked : 0);
+
+
+						if (m_IsDevicePositionTracked[i] || m_IsDeviceRotationTracked[i])
+						{
+							CopyPoseState(m_localStates[i].pose, m_nativeStates[i].pose, m_rTrackedDevicePose[i]);
+						}
+
+					}
+					else
+					{
+						m_IsDevicePositionTracked[i] = false;
+						m_IsDeviceRotationTracked[i] = false;
+					}
+
+					//recenter pose
+					{
+						float* ipdptr = (m_fInterpupillaryDistance > 0.01f ? &m_fInterpupillaryDistance : nullptr);
+						HyPose hyEyeRenderPose[HY_EYE_MAX];
+						m_pVrGraphicsCxt->GetEyePoses(m_rTrackedDevicePose[EDevice::Hmd].m_pose, ipdptr, hyEyeRenderPose);
+
+						memcpy(&m_nativeEyePoseStates, &m_nativeStates[i/*EDevice::Hmd*/], sizeof(AZ::VR::TrackingState));
+						memcpy(&m_localEyePoseStates, &m_localStates[i/*EDevice::Hmd*/], sizeof(AZ::VR::TrackingState));
+
+						// compute centered transformation
+						AZ::Quaternion eyeRotation = HYQuatToQuat(hyEyeRenderPose[HY_EYE_LEFT].m_rotation);
+						AZ::Vector3 eyePosition = HYVec3ToVec3(hyEyeRenderPose[HY_EYE_LEFT].m_position);
+
+						AZ::Quaternion qRecenterRotation = m_qBaseOrientation.GetInverseFull()*eyeRotation;
+						qRecenterRotation.Normalize();
+						AZ::Vector3 vRecenterPosition = (eyePosition - m_vBaseOffset) * m_fMeterToWorldScale;
+						vRecenterPosition = m_qBaseOrientation.GetInverseFull()*vRecenterPosition;
+						if (!m_bPosTrackingEnable)
+						{
+							vRecenterPosition.SetX(0.f);
+							vRecenterPosition.SetY(0.f);
+						}
+
+						m_nativeStates[i].pose.orientation = m_nativeEyePoseStates.pose.orientation = m_localEyePoseStates.pose.orientation = qRecenterRotation;
+						m_localStates[i].pose.position = m_nativeEyePoseStates.pose.position = m_localEyePoseStates.pose.position = vRecenterPosition;
+
+					}
+
+					if (i != Hmd)//controller
+					{
+						HyResult res;
+						HyInputState controllerState;
+
+						HySubDevice sid = static_cast<HySubDevice>(i);
+						res = m_pVrDevice->GetControllerInputState(sid, controllerState);
+// 						if (hySuccess == res)
+// 							m_controller.Update(sid, m_nativeStates[i], m_localStates[i], controllerState);
+					}
+					else//HMD
+					{
+					}
+				}
+			}
+		}
+
 		// Process internal OpenVR events.
 // 		{
 // 			vr::VREvent_t event;
@@ -445,6 +720,10 @@ namespace HyperealVR
 // 				}
 // 			}
 // 		}
+
+
+
+		m_lastFrameID_UpdateTrackingState = frameId;
 	}
 
 	AZ::VR::TrackingState* HyperealVRDevice::GetTrackingState()
@@ -461,6 +740,13 @@ namespace HyperealVR
 // 
 // 			m_compositor->WaitGetPoses(m_trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
 // 		}
+
+		if (m_pVrGraphicsCxt)
+		{
+			HyResult hr = hySuccess;
+
+			hr = m_pVrGraphicsCxt->Submit(m_lastFrameID_UpdateTrackingState, m_RTDesc, 2);
+		}
 	}
 
 	void HyperealVRDevice::RecenterPose()
@@ -484,7 +770,7 @@ namespace HyperealVR
 // 			break;
 // 
 // 		default:
-// 			AZ_Assert(false, "Unknown tracking level %d requested for the Oculus", static_cast<int>(level));
+// 			AZ_Assert(false, "Unknown tracking level %d requested for the HyperealVR", static_cast<int>(level));
 // 			break;
 // 		}
 	}
@@ -555,5 +841,55 @@ namespace HyperealVR
 		char* pBuffer = new char[realStrLen];
 		m_pVrDevice->GetStringValue(HY_PROPERTY_DEVICE_MANUFACTURER_STRING, pBuffer, realStrLen, &realStrLen);
 		return const_cast<char*>(pBuffer);
+	}
+
+	// -------------------------------------------------------------------------
+	void HyperealVRDevice::UpdateInternal()
+	{
+		if (!m_pVrDevice || !m_pVrGraphicsCxt)
+		{
+			return;
+		}
+		const HyMsgHeader *msg;
+		while (true)
+		{
+			m_pVrDevice->RetrieveMsg(&msg);
+			if (msg->m_type == HY_MSG_NONE)
+				break;
+			switch (msg->m_type)
+			{
+			case HY_MSG_PENDING_QUIT:
+				m_bIsQuitting = true;
+				break;
+			case HY_MSG_INPUT_FOCUS_CHANGED:
+				break;
+			case HY_MSG_VIEW_FOCUS_CHANGED:
+				break;
+			case HY_MSG_SUBDEVICE_STATUS_CHANGED:
+			{
+// 				HyMsgSubdeviceChange* pData = ((HyMsgSubdeviceChange*)msg);
+// 				HySubDevice sid = static_cast<HySubDevice>(pData->m_subdevice);
+// 				if (0 != pData->m_value)
+// 					m_controller.OnControllerConnect(sid);
+// 				else
+// 					m_controller.OnControllerDisconnect(sid);//?????bug? some times incorrect
+			}
+			break;
+			default:
+				m_pVrDevice->DefaultMsgFunction(msg);
+				break;
+			}
+		}
+
+		if (m_bIsQuitting)
+		{
+#if WITH_EDITOR
+#endif	//WITH_EDITOR
+			{
+				gEnv->pSystem->Quit();
+			}
+			m_bIsQuitting = false;
+		}
+
 	}
 }
