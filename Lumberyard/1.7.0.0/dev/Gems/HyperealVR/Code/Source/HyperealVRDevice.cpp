@@ -163,7 +163,7 @@ namespace HyperealVR
 		m_bResetOrientationKeepPitchAndRoll = false;
 
 // 		memset(m_trackedDevicePose, 0, sizeof(m_trackedDevicePose));
-// 		m_controller = new OpenVRController(m_system); // Note that this will be deleted by the input system and should not be deleted here.
+// 		m_controller = new HyperealVRController(m_system); // Note that this will be deleted by the input system and should not be deleted here.
     }
 
     void HyperealVRDevice::Activate()
@@ -180,7 +180,7 @@ namespace HyperealVR
 	bool HyperealVRDevice::AttemptInit()
 	{
 		
- 		//LogMessage("Attempting to initialize OpenVR SDK");
+ 		//LogMessage("Attempting to initialize HyperealVR SDK");
 
 		bool success = false;
 
@@ -323,7 +323,7 @@ namespace HyperealVR
 // 																		// Connect to the HMDDeviceBus in order to get HMD messages from the rest of the VR system.
 // 					AZ::VR::HMDDeviceRequestBus::Handler::BusConnect();
 // 					m_controller->ConnectToControllerBus();
-// 					OpenVRRequestBus::Handler::BusConnect();
+// 					HyperealVRRequestBus::Handler::BusConnect();
 // 
 // 					success = true;
 // 				}
@@ -417,7 +417,7 @@ namespace HyperealVR
 		}
 
 // 		float left, right, top, bottom;
-// 		m_system->GetProjectionRaw(MapOpenVREyeToLY(eye), &left, &right, &top, &bottom);
+// 		m_system->GetProjectionRaw(MapHyperealVREyeToLY(eye), &left, &right, &top, &bottom);
 // 
 // 		cameraInfo.fov = 2.0f * atanf((bottom - top) * 0.5f);
 // 		cameraInfo.aspectRatio = (right - left) / (bottom - top);
@@ -509,13 +509,13 @@ namespace HyperealVR
 
 			m_RTDesc[i].m_texture = texture;
 			
-//  			// Create a OpenVR texture that is associated with this new D3D texture.
+//  			// Create a HyperealVR texture that is associated with this new D3D texture.
 //  			vr::Texture_t* deviceTexture = new vr::Texture_t();
 //  			deviceTexture->eColorSpace = vr::EColorSpace::ColorSpace_Auto;
 //  			deviceTexture->eType = vr::EGraphicsAPIConvention::API_DirectX;
 //  			deviceTexture->handle = texture;
  
- 			// We only create one texture for OpenVR (no swapchain).
+ 			// We only create one texture for HyperealVR (no swapchain).
  			renderTargets[i]->deviceSwapTextureSet = &m_RTDesc[i];
  			renderTargets[i]->numTextures = 1;
  			renderTargets[i]->textures = new void*[1];
@@ -619,7 +619,7 @@ namespace HyperealVR
 			}
 		}
 
-		// Process internal OpenVR events.
+		// Process internal HyperealVR events.
 // 		{
 // 			vr::VREvent_t event;
 // 			while (m_system->PollNextEvent(&event, sizeof(vr::VREvent_t)))
@@ -892,4 +892,17 @@ namespace HyperealVR
 		}
 
 	}
+
+	void HyperealVRDevice::GetPlayspace(Playspace& playspace) const
+	{
+// 		vr::HmdQuad_t openVRSpace;
+// 		bool valid = vr::VRChaperone()->GetPlayAreaRect(&openVRSpace);
+// 
+// 		playspace.corners[0] = HYVec3ToVec3(openVRSpace.vCorners[0]);
+// 		playspace.corners[1] = HYVec3ToVec3(openVRSpace.vCorners[1]);
+// 		playspace.corners[2] = HYVec3ToVec3(openVRSpace.vCorners[2]);
+// 		playspace.corners[3] = HYVec3ToVec3(openVRSpace.vCorners[3]);
+// 		playspace.isValid = valid;
+	}
+
 }

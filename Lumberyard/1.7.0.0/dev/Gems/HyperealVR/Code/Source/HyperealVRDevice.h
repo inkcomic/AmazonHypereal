@@ -66,8 +66,8 @@ namespace HyperealVR
 		////////////////////////////////////////////////////////////////////////////
 
 	private:
-		/// OpenVRRequests overrides ///////////////////////////////////////////////
-// 		void GetPlayspace(Playspace& playspace) const override;
+		/// HyperealVRRequests overrides ///////////////////////////////////////////////
+ 		void GetPlayspace(Playspace& playspace) const override;
 // 		////////////////////////////////////////////////////////////////////////////
 // 
 // 		vr::IVRSystem* m_system = nullptr;
@@ -75,7 +75,7 @@ namespace HyperealVR
 // 		vr::TrackedDevicePose_t m_trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 // 		vr::ETrackingUniverseOrigin m_trackingOrigin;
 // 
-// 		OpenVRController* m_controller;
+// 		HyperealVRController* m_controller;
 		AZ::VR::TrackingState m_trackingState; ///< Most recent tracking state of the HMD (not including any connected controllers).
 		AZ::VR::HMDDeviceInfo m_deviceInfo;
 
