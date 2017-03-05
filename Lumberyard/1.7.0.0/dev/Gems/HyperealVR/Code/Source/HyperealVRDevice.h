@@ -4,7 +4,7 @@
 #include <AzCore/Component/Component.h>
 #include <HyperealVR/HyperealVRBus.h>
 #include "HMDBus.h"
-
+#include "HyperealVRController.h"
 #include <HMDBus.h>
 #include <VRControllerBus.h>
 #include <CrySystemBus.h>
@@ -13,6 +13,8 @@
 
 namespace HyperealVR
 {
+	class HyperealVRController;
+
     class HyperealVRDevice
         : public AZ::Component
 		, public AZ::VR::HMDDeviceRequestBus::Handler
@@ -68,6 +70,7 @@ namespace HyperealVR
 	private:
 		/// HyperealVRRequests overrides ///////////////////////////////////////////////
  		void GetPlayspace(Playspace& playspace) const override;
+		bool IsConnected(uint32_t id) const;
 // 		////////////////////////////////////////////////////////////////////////////
 // 
 // 		vr::IVRSystem* m_system = nullptr;
@@ -75,7 +78,7 @@ namespace HyperealVR
 // 		vr::TrackedDevicePose_t m_trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 // 		vr::ETrackingUniverseOrigin m_trackingOrigin;
 // 
-// 		HyperealVRController* m_controller;
+ 		HyperealVRController* m_controller;
 		AZ::VR::TrackingState m_trackingState; ///< Most recent tracking state of the HMD (not including any connected controllers).
 		AZ::VR::HMDDeviceInfo m_deviceInfo;
 
@@ -133,7 +136,7 @@ namespace HyperealVR
 		bool					m_bResetOrientationKeepPitchAndRoll;
 
 		// Controller related:
-// 		Controller              m_controller;
+//		OpenVRController              m_controller;
 // 		bool                    m_hasInputFocus;
 // 		bool                    m_hmdTrackingDisabled;
 // 		float                   m_hmdQuadDistance;

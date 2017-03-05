@@ -137,7 +137,18 @@ namespace HyperealVR
     {
         (void)dependent;
     }
-
+	// -------------------------------------------------------------------------
+	bool HyperealVRDevice::IsConnected(uint32_t id) const
+	{
+		if (!m_pVrDevice)
+			return false;
+		bool bControllerConnected = false;
+		if (HY_SUBDEV_CONTROLLER_LEFT == id)
+			m_pVrDevice->GetBoolValue(HY_PROPERTY_CONTROLLER0_CONNECTED_BOOL, bControllerConnected);
+		else if (HY_SUBDEV_CONTROLLER_RIGHT == id)
+			m_pVrDevice->GetBoolValue(HY_PROPERTY_CONTROLLER1_CONNECTED_BOOL, bControllerConnected);
+		return bControllerConnected;
+	}
     void HyperealVRDevice::Init()
     {
 		m_lastFrameID_UpdateTrackingState = -1;
@@ -163,7 +174,7 @@ namespace HyperealVR
 		m_bResetOrientationKeepPitchAndRoll = false;
 
 // 		memset(m_trackedDevicePose, 0, sizeof(m_trackedDevicePose));
-// 		m_controller = new HyperealVRController(m_system); // Note that this will be deleted by the input system and should not be deleted here.
+ 		m_controller = new HyperealVRController(m_pVrDevice); // Note that this will be deleted by the input system and should not be deleted here.
     }
 
     void HyperealVRDevice::Activate()
@@ -246,12 +257,24 @@ namespace HyperealVR
 				gEnv->pLog->Log("[HMD][Hypereal] EnableStereo successfully.");
 
 
+				// Check for any controllers that may be connected.
+				{
+				 	m_controller->Enable(true);
+				 	for (int ii = 0; ii < HY_SUBDEV_CONTROLLER_RESERVED; ++ii)
+				 	{
+						if (IsConnected(ii))
+						{
+							m_controller->ConnectController(ii);
+						}
+				 	}
+				}
+
 				SetTrackingLevel(AZ::VR::HMDTrackingLevel::kFloor); 
 				// Default to a seated experience.
 				 
 				// Connect to the HMDDeviceBus in order to get HMD messages from the rest of the VR system.
 				AZ::VR::HMDDeviceRequestBus::Handler::BusConnect();
-				//m_controller->ConnectToControllerBus();
+				m_controller->ConnectToControllerBus();
 				HyperealVRRequestBus::Handler::BusConnect();
 				 
 				success = true;
@@ -348,7 +371,7 @@ namespace HyperealVR
 
 	void HyperealVRDevice::Shutdown()
 	{
-// 		m_controller->DisconnectFromControllerBus();
+ 		m_controller->DisconnectFromControllerBus();
 // 
  		AZ::VR::HMDDeviceRequestBus::Handler::BusDisconnect();
 		HyperealVRRequestBus::Handler::BusDisconnect();
@@ -609,8 +632,11 @@ namespace HyperealVR
 
 						HySubDevice sid = static_cast<HySubDevice>(i);
 						res = m_pVrDevice->GetControllerInputState(sid, controllerState);
-// 						if (hySuccess == res)
-// 							m_controller.Update(sid, m_nativeStates[i], m_localStates[i], controllerState);
+						if (hySuccess == res)
+						{
+							/*m_controller.Update(sid, m_nativeStates[i], m_localStates[i], controllerState);*/
+							m_controller->SetCurrentState(sid, m_localStates[i], controllerState);
+						}
 					}
 					else//HMD
 					{
@@ -867,12 +893,12 @@ namespace HyperealVR
 				break;
 			case HY_MSG_SUBDEVICE_STATUS_CHANGED:
 			{
-// 				HyMsgSubdeviceChange* pData = ((HyMsgSubdeviceChange*)msg);
-// 				HySubDevice sid = static_cast<HySubDevice>(pData->m_subdevice);
-// 				if (0 != pData->m_value)
-// 					m_controller.OnControllerConnect(sid);
-// 				else
-// 					m_controller.OnControllerDisconnect(sid);//?????bug? some times incorrect
+ 				HyMsgSubdeviceChange* pData = ((HyMsgSubdeviceChange*)msg);
+ 				HySubDevice sid = static_cast<HySubDevice>(pData->m_subdevice);
+ 				if (0 != pData->m_value)
+ 					m_controller->ConnectController(sid);
+ 				else
+ 					m_controller->DisconnectController(sid);//?????bug? some times incorrect
 			}
 			break;
 			default:

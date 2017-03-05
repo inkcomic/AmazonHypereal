@@ -29,7 +29,7 @@ namespace HyperealVR
 	{
 	public:
 
-		HyperealVRController(/*vr::IVRSystem*& system*/);
+		HyperealVRController(HyDevice *system);
 		~HyperealVRController();
 
 		// IInputDevice overrides //////////////////////////////////////////////////
@@ -73,9 +73,9 @@ namespace HyperealVR
 		void ConnectToControllerBus();
 		void DisconnectFromControllerBus();
 
-		void SetCurrentState(const vr::TrackedDeviceIndex_t deviceIndex, const AZ::VR::TrackingState& trackingState, const vr::VRControllerState_t& buttonState);
-		void ConnectController(const vr::TrackedDeviceIndex_t deviceIndex);
-		void DisconnectController(const vr::TrackedDeviceIndex_t deviceIndex);
+		void SetCurrentState(const uint32_t deviceIndex, const AZ::VR::TrackingState& trackingState, const HyInputState& buttonState);
+		void ConnectController(const uint32_t deviceIndex);
+		void DisconnectController(const uint32_t deviceIndex);
 
 	private:
 
@@ -101,34 +101,34 @@ namespace HyperealVR
 				return *this;
 			}
 
-			void Set(const AZ::VR::TrackingState& newTrackingState, const vr::VRControllerState_t& newButtonState)
+			void Set(const AZ::VR::TrackingState& newTrackingState, const HyInputState& newButtonState)
 			{
 				trackingState = newTrackingState;
 				memcpy(&buttonState, &newButtonState, sizeof(newButtonState));
 			}
 
-			inline bool IsButtonPressed(const vr::EVRButtonId buttonId) const
+			inline bool IsButtonPressed(const HyButton& buttonId) const
 			{
-				return (buttonState.ulButtonPressed & vr::ButtonMaskFromId(buttonId)) != 0;
+				return (buttonState.m_buttons & buttonId) != 0;
 			}
 
-			inline bool IsButtonTouched(const vr::EVRButtonId buttonId) const
+			inline bool IsButtonTouched(const  HyButton&  buttonId) const
 			{
-				return (buttonState.ulButtonTouched & vr::ButtonMaskFromId(buttonId)) != 0;
+				return (buttonState.m_buttons & buttonId) != 0;
 			}
 
 			AZ::VR::TrackingState trackingState;
-			vr::VRControllerState_t buttonState;
+			HyInputState buttonState;
 		};
 
-		vr::IVRSystem*& m_system; // Note: the system can be created *after* the device is created
+		HyDevice*& m_system; // Note: the system can be created *after* the device is created
 		IInputDevice::TDevSpecIdToSymbolMap m_symbolMapping;
 		int m_deviceIndex;
 		uint8 m_deviceID;
 		bool m_enabled;
 		ControllerState m_currentState[static_cast<uint32_t>(AZ::VR::ControllerIndex::MaxNumControllers)];
 		ControllerState m_previousState[static_cast<uint32_t>(AZ::VR::ControllerIndex::MaxNumControllers)];
-		vr::TrackedDeviceIndex_t m_contollerMapping[static_cast<uint32_t>(AZ::VR::ControllerIndex::MaxNumControllers)];
+		/*vr::TrackedDeviceIndex_t*/uint32_t m_contollerMapping[static_cast<uint32_t>(AZ::VR::ControllerIndex::MaxNumControllers)];
 		IFFParams m_FFParams;
 	};
 

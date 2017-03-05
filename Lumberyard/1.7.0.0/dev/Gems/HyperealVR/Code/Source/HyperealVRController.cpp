@@ -18,20 +18,15 @@ namespace HyperealVR
 {
 
 #define BUTTON_DEFINES \
-    X(System,           vr::k_EButton_System,           SInputSymbol::Button)  \
-    X(Application,      vr::k_EButton_ApplicationMenu,  SInputSymbol::Button)  \
-    X(Grip,             vr::k_EButton_Grip,             SInputSymbol::Button)  \
-    X(DPadLeft,         vr::k_EButton_DPad_Left,        SInputSymbol::Button)  \
-    X(DPadRight,        vr::k_EButton_DPad_Right,       SInputSymbol::Button)  \
-    X(DPadUp,           vr::k_EButton_DPad_Up,          SInputSymbol::Button)  \
-    X(DPadDown,         vr::k_EButton_DPad_Down,        SInputSymbol::Button)  \
-    X(A,                vr::k_EButton_A,                SInputSymbol::Button)  \
-    X(TouchpadX,        vr::k_EButton_SteamVR_Touchpad, SInputSymbol::Axis)    \
-    X(TouchpadY,        vr::k_EButton_SteamVR_Touchpad, SInputSymbol::Axis)    \
-    X(TouchpadButton,   vr::k_EButton_SteamVR_Touchpad, SInputSymbol::Button)  \
-    X(Trigger,          vr::k_EButton_SteamVR_Trigger,  SInputSymbol::Trigger) \
-    X(TriggerButton,    vr::k_EButton_SteamVR_Trigger,  SInputSymbol::Button)
-
+    X(BtnA,				HY_BUTTON_A,			SInputSymbol::Button)  \
+    X(BtnB,				HY_BUTTON_B,			SInputSymbol::Button)  \
+    X(BtnX,				HY_BUTTON_X,          SInputSymbol::Button)  \
+    X(BtnY,				HY_BUTTON_Y,			SInputSymbol::Button)  \
+    X(TriggerBtnL,      HY_BUTTON_THUMB_LEFT,   SInputSymbol::Trigger)  \
+    X(TriggerBtnR,           HY_BUTTON_THUMB_RIGHT,          SInputSymbol::Trigger)  \
+    X(SideTriggerBtnL,         HY_BUTTON_SHOULDER_LEFT,        SInputSymbol::Trigger)  \
+    X(SideTriggerBtnR,                HY_BUTTON_SHOULDER_RIGHT,                SInputSymbol::Trigger) 
+ 
 #define X(buttonId, deviceButtonId, buttonType) k##buttonId,
 	enum ButtonIds
 	{
@@ -42,7 +37,7 @@ namespace HyperealVR
 
 	struct HyperealVRButton
 	{
-		HyperealVRButton(const char* buttonName, const vr::EVRButtonId buttonDeviceID, const SInputSymbol::EType buttonType) :
+		HyperealVRButton(const char* buttonName, const HyButton& buttonDeviceID, const SInputSymbol::EType& buttonType) :
 			name(buttonName),
 			deviceID(buttonDeviceID),
 			type(buttonType)
@@ -50,7 +45,7 @@ namespace HyperealVR
 		}
 
 		const char* name;
-		const vr::EVRButtonId deviceID;
+		const HyButton deviceID;
 		const SInputSymbol::EType type;
 	};
 
@@ -71,7 +66,7 @@ namespace HyperealVR
 
 	static const unsigned short kMaxPulseDurationMicroSec = 3999; // 5ms - minimum vibrate time. 3999 max value
 
-	HyperealVRController::HyperealVRController(vr::IVRSystem*& system) :
+	HyperealVRController::HyperealVRController(HyDevice *system) :
 		m_system(system),
 		m_deviceIndex(0),
 		m_deviceID(0),
@@ -82,7 +77,7 @@ namespace HyperealVR
 
 		for (uint32 index = 0; index < static_cast<uint32_t>(AZ::VR::ControllerIndex::MaxNumControllers); ++index)
 		{
-			m_contollerMapping[index] = vr::k_unTrackedDeviceIndexInvalid;
+			m_contollerMapping[index] = HY_SUBDEV_CONTROLLER_RESERVED;//max controller id
 		}
 
 		CreateInputMapping();
@@ -136,7 +131,7 @@ namespace HyperealVR
 		for (uint32 controllerIndex = 0; controllerIndex < static_cast<uint32_t>(AZ::VR::ControllerIndex::MaxNumControllers); ++controllerIndex)
 		{
 			// Make sure this controller is currently mapped (enabled).
-			if (m_contollerMapping[controllerIndex] != vr::k_unTrackedDeviceIndexInvalid)
+			if (m_contollerMapping[controllerIndex] != HY_SUBDEV_CONTROLLER_RESERVED/*vr::k_unTrackedDeviceIndexInvalid*/)
 			{
 				ControllerState* currentState = &m_currentState[controllerIndex];
 				ControllerState* previousState = &m_previousState[controllerIndex];
@@ -166,8 +161,8 @@ namespace HyperealVR
 
 					case SInputSymbol::Trigger:
 					{
-						float trigger = currentState->buttonState.rAxis[button->deviceID - vr::k_EButton_Axis0].x;
-						float previousTrigger = previousState->buttonState.rAxis[button->deviceID - vr::k_EButton_Axis0].x;
+						float trigger = currentState->buttonState.m_trigger/*rAxis[button->deviceID - vr::k_EButton_Axis0].x*/;
+						float previousTrigger = previousState->buttonState.m_trigger/*.rAxis[button->deviceID - vr::k_EButton_Axis0].x*/;
 
 						if (trigger != previousTrigger)
 						{
@@ -184,8 +179,8 @@ namespace HyperealVR
 					{
 						// Process X and Y separately.
 						{
-							float x = currentState->buttonState.rAxis[button->deviceID - vr::k_EButton_Axis0].x;
-							float previousX = previousState->buttonState.rAxis[button->deviceID - vr::k_EButton_Axis0].x;
+							float x = currentState->buttonState.m_thumbstick.x/*rAxis[button->deviceID - vr::k_EButton_Axis0].x*/;
+							float previousX = previousState->buttonState.m_thumbstick.x/*rAxis[button->deviceID - vr::k_EButton_Axis0].x*/;
 
 							if (x != previousX)
 							{
@@ -198,8 +193,8 @@ namespace HyperealVR
 						}
 
 						{
-							float y = currentState->buttonState.rAxis[button->deviceID - vr::k_EButton_Axis0].y;
-							float previousY = previousState->buttonState.rAxis[button->deviceID - vr::k_EButton_Axis0].y;
+							float y = currentState->buttonState.m_thumbstick.y/*rAxis[button->deviceID - vr::k_EButton_Axis0].y*/;
+							float previousY = previousState->buttonState.m_thumbstick.y/*rAxis[button->deviceID - vr::k_EButton_Axis0].y*/;
 
 							if (y != previousY)
 							{
@@ -222,24 +217,24 @@ namespace HyperealVR
 		}
 
 		// handle timed vibrate
-		if (m_FFParams.timeInSeconds > 0.0f)
-		{
-			m_FFParams.timeInSeconds -= gEnv->pTimer->GetFrameTime();
-			float strengthA = m_FFParams.strengthA;
-			float strengthB = m_FFParams.strengthB;
-
-			if (m_FFParams.timeInSeconds <= 0.0f)
-			{
-				strengthA = 0.0f;
-				strengthB = 0.0f;
-			}
-
-			if (m_system != nullptr)
-			{
-				m_system->TriggerHapticPulse(m_contollerMapping[0], 0, static_cast<unsigned short>(strengthA*kMaxPulseDurationMicroSec));
-				m_system->TriggerHapticPulse(m_contollerMapping[1], 0, static_cast<unsigned short>(strengthB*kMaxPulseDurationMicroSec));
-			}
-		}
+// 		if (m_FFParams.timeInSeconds > 0.0f)
+// 		{
+// 			m_FFParams.timeInSeconds -= gEnv->pTimer->GetFrameTime();
+// 			float strengthA = m_FFParams.strengthA;
+// 			float strengthB = m_FFParams.strengthB;
+// 
+// 			if (m_FFParams.timeInSeconds <= 0.0f)
+// 			{
+// 				strengthA = 0.0f;
+// 				strengthB = 0.0f;
+// 			}
+// 
+// 			if (m_system != nullptr)
+// 			{
+// 				m_system->TriggerHapticPulse(m_contollerMapping[0], 0, static_cast<unsigned short>(strengthA*kMaxPulseDurationMicroSec));
+// 				m_system->TriggerHapticPulse(m_contollerMapping[1], 0, static_cast<unsigned short>(strengthB*kMaxPulseDurationMicroSec));
+// 			}
+// 		}
 	}
 
 	bool HyperealVRController::SetForceFeedback(IFFParams params)
@@ -253,8 +248,8 @@ namespace HyperealVR
 		{
 			if (m_system != nullptr)
 			{
-				m_system->TriggerHapticPulse(m_contollerMapping[0], 0, static_cast<unsigned short>(params.strengthA*kMaxPulseDurationMicroSec));
-				m_system->TriggerHapticPulse(m_contollerMapping[1], 0, static_cast<unsigned short>(params.strengthB*kMaxPulseDurationMicroSec));
+				m_system->SetControllerVibration((HySubDevice)m_contollerMapping[0], static_cast<unsigned short>(params.strengthA*kMaxPulseDurationMicroSec), params.strengthA);
+				m_system->SetControllerVibration((HySubDevice)m_contollerMapping[1], static_cast<unsigned short>(params.strengthB*kMaxPulseDurationMicroSec), params.strengthB);
 			}
 		}
 
@@ -372,7 +367,7 @@ namespace HyperealVR
 
 	bool HyperealVRController::IsConnected(AZ::VR::ControllerIndex controllerIndex)
 	{
-		return (m_contollerMapping[static_cast<uint32_t>(controllerIndex)] != vr::k_unTrackedDeviceIndexInvalid);
+		return (m_contollerMapping[static_cast<uint32_t>(controllerIndex)] != HY_SUBDEV_CONTROLLER_RESERVED);
 	}
 
 	void HyperealVRController::OnCrySystemInitialized(ISystem& system, const SSystemInitParams&)
@@ -393,7 +388,7 @@ namespace HyperealVR
 		AZ::VR::ControllerRequestBus::Handler::BusDisconnect();
 	}
 
-	void HyperealVRController::SetCurrentState(const vr::TrackedDeviceIndex_t deviceIndex, const AZ::VR::TrackingState& trackingState, const vr::VRControllerState_t& buttonState)
+	void HyperealVRController::SetCurrentState(const uint32_t deviceIndex, const AZ::VR::TrackingState& trackingState, const HyInputState& buttonState)
 	{
 		uint32 index = 0;
 		for (; index < static_cast<uint32_t>(AZ::VR::ControllerIndex::MaxNumControllers); ++index)
@@ -433,11 +428,11 @@ namespace HyperealVR
 		}
 	}
 
-	void HyperealVRController::ConnectController(const vr::TrackedDeviceIndex_t deviceIndex)
+	void HyperealVRController::ConnectController(const uint32_t deviceIndex)
 	{
 		for (uint32 index = 0; index < static_cast<uint32_t>(AZ::VR::ControllerIndex::MaxNumControllers); ++index)
 		{
-			if (m_contollerMapping[index] == vr::k_unTrackedDeviceIndexInvalid)
+			if (m_contollerMapping[index] == HY_SUBDEV_CONTROLLER_RESERVED/*vr::k_unTrackedDeviceIndexInvalid*/)
 			{
 				// This is an unused controller slot.
 				m_contollerMapping[index] = deviceIndex;
@@ -448,13 +443,13 @@ namespace HyperealVR
 		AZ_Assert(0, "Attempting to map more than %d HyperealVR controllers", static_cast<uint32_t>(AZ::VR::ControllerIndex::MaxNumControllers));
 	}
 
-	void HyperealVRController::DisconnectController(const vr::TrackedDeviceIndex_t deviceIndex)
+	void HyperealVRController::DisconnectController(const uint32_t deviceIndex)
 	{
 		for (uint32 index = 0; index < static_cast<uint32_t>(AZ::VR::ControllerIndex::MaxNumControllers); ++index)
 		{
 			if (m_contollerMapping[index] == deviceIndex)
 			{
-				m_contollerMapping[index] = vr::k_unTrackedDeviceIndexInvalid;
+				m_contollerMapping[index] = HY_SUBDEV_CONTROLLER_RESERVED/*vr::k_unTrackedDeviceIndexInvalid*/;
 				return;
 			}
 		}
