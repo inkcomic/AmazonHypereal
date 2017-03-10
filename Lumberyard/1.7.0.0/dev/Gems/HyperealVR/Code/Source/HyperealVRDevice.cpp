@@ -74,6 +74,23 @@ namespace HyperealVR
 	//	world.linearVelocity = /*HmdVec3ToWorldVec3*/(hmd.linearVelocity);
 	//	world.angularVelocity = /*HmdVec3ToWorldVec3*/(hmd.angularVelocity);
 	}
+	void HyperealVRDevice::CopyPose(const HyTrackingState& src, AZ::VR::PoseState& poseDest, AZ::VR::DynamicsState& dynamicDest)
+	{
+		AZ::Quaternion srcQuat = HYQuatToQuat(src.m_pose.m_rotation);
+		AZ::Vector3 srcPos = HYVec3ToVec3(src.m_pose.m_position);
+		AZ::Vector3 srcAngVel = HYVec3ToVec3(src.m_angularVelocity);
+		AZ::Vector3 srcAngAcc = HYVec3ToVec3(src.m_angularAcceleration);
+		AZ::Vector3 srcLinVel = HYVec3ToVec3(src.m_linearVelocity);
+		AZ::Vector3 srcLinAcc = HYVec3ToVec3(src.m_linearAcceleration);
+
+		poseDest.orientation = srcQuat;
+		poseDest.position = srcPos;
+
+		dynamicDest.linearVelocity = srcLinVel;
+		dynamicDest.angularVelocity = srcAngVel;
+		dynamicDest.angularAcceleration = AZ::Vector3(0.0f, 0.0f, 0.0f); // does not support accelerations.
+		dynamicDest.linearAcceleration = AZ::Vector3(0.0f, 0.0f, 0.0f); // does not support accelerations.
+	}
 
 	HyFov ComputeSymmetricalFov(const HyFov& fovLeftEye, const HyFov& fovRightEye)
 	{
@@ -110,7 +127,7 @@ namespace HyperealVR
             {
                 ec->Class<HyperealVRDevice>("HyperealVR", "[Description of functionality provided by this System Component]")
                     ->ClassElement(AZ::Edit::ClassElements::EditorData, "")
-                        // ->Attribute(AZ::Edit::Attributes::Category, "") Set a category
+                         ->Attribute(AZ::Edit::Attributes::Category, "VR")// Set a category
                         ->Attribute(AZ::Edit::Attributes::AppearsInAddComponentMenu, AZ_CRC("System"))
                         ->Attribute(AZ::Edit::Attributes::AutoExpand, true)
                     ;
@@ -120,6 +137,7 @@ namespace HyperealVR
 
     void HyperealVRDevice::GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType& provided)
     {
+		provided.push_back(AZ_CRC("HMDDevice"));
         provided.push_back(AZ_CRC("HyperealVRService"));
     }
 
@@ -179,12 +197,15 @@ namespace HyperealVR
 
     void HyperealVRDevice::Activate()
     {
-        HyperealVRRequestBus::Handler::BusConnect();
+       // HyperealVRRequestBus::Handler::BusConnect();
+	   // Connect to the EBus so that we can receive messages.
+		AZ::VR::HMDInitRequestBus::Handler::BusConnect();
     }
 
     void HyperealVRDevice::Deactivate()
     {
-        HyperealVRRequestBus::Handler::BusDisconnect();
+        //HyperealVRRequestBus::Handler::BusDisconnect();
+		AZ::VR::HMDInitRequestBus::Handler::BusDisconnect();
     }
 
 
@@ -588,6 +609,11 @@ namespace HyperealVR
 						if (m_IsDevicePositionTracked[i] || m_IsDeviceRotationTracked[i])
 						{
 							CopyPoseState(m_localStates[i].pose, m_nativeStates[i].pose, m_rTrackedDevicePose[i]);
+							
+							m_trackingState.statusFlags = (((HY_TRACKING_POSITION_TRACKED & trackingState.m_flags)) ? AZ::VR::HMDStatus_OrientationTracked | AZ::VR::HMDStatus_PositionConnected | AZ::VR::HMDStatus_CameraPoseTracked : 0) |
+								(((HY_TRACKING_ROTATION_TRACKED & trackingState.m_flags)) ? AZ::VR::HMDStatus_OrientationTracked | AZ::VR::HMDStatus_HmdConnected : 0);
+
+							CopyPose(trackingState, m_trackingState.pose, m_trackingState.dynamics);
 						}
 
 					}
@@ -777,10 +803,7 @@ namespace HyperealVR
 
 	void HyperealVRDevice::RecenterPose()
 	{
-// 		if (m_system)
-// 		{
-// 			m_system->ResetSeatedZeroPose();
-// 		}
+		ResetOrientationAndPosition(0.0f);
 	}
 
 	void HyperealVRDevice::SetTrackingLevel(const AZ::VR::HMDTrackingLevel level)
@@ -893,12 +916,12 @@ namespace HyperealVR
 				break;
 			case HY_MSG_SUBDEVICE_STATUS_CHANGED:
 			{
- 				HyMsgSubdeviceChange* pData = ((HyMsgSubdeviceChange*)msg);
- 				HySubDevice sid = static_cast<HySubDevice>(pData->m_subdevice);
- 				if (0 != pData->m_value)
- 					m_controller->ConnectController(sid);
- 				else
- 					m_controller->DisconnectController(sid);//?????bug? some times incorrect
+//  				HyMsgSubdeviceChange* pData = ((HyMsgSubdeviceChange*)msg);
+//  				HySubDevice sid = static_cast<HySubDevice>(pData->m_subdevice);
+//  				if (0 != pData->m_value)
+//  					m_controller->ConnectController(sid);
+//  				else
+//  					m_controller->DisconnectController(sid);//?????bug? some times incorrect
 			}
 			break;
 			default:
@@ -929,6 +952,40 @@ namespace HyperealVR
 // 		playspace.corners[2] = HYVec3ToVec3(openVRSpace.vCorners[2]);
 // 		playspace.corners[3] = HYVec3ToVec3(openVRSpace.vCorners[3]);
 // 		playspace.isValid = valid;
+	}
+
+	void HyperealVRDevice::ResetOrientationAndPosition(float Yaw)
+	{
+		ResetOrientation(Yaw);
+		ResetPosition();
+	}
+
+	void HyperealVRDevice::ResetOrientation(float yaw)
+	{
+		const AZ::Quaternion& _qBaseOrientation = HYQuatToQuat(m_rTrackedDevicePose[EDevice::Hmd].m_pose.m_rotation);
+		Quat qBaseOrientation(_qBaseOrientation.GetW(), _qBaseOrientation.GetX(), _qBaseOrientation.GetY(), _qBaseOrientation.GetZ());
+		Ang3 currentAng = Ang3(qBaseOrientation);
+		if (!m_bResetOrientationKeepPitchAndRoll)
+		{
+			currentAng.x = 0;//Pitch
+			currentAng.y = 0;//Roll
+		}
+
+		if (fabs(yaw) > FLT_EPSILON)
+		{
+			currentAng.z -= yaw;
+			//currentAng.Normalize();
+		}
+		const Quat& resQuat = Quat(currentAng);
+		m_qBaseOrientation.SetW(resQuat.w);
+		m_qBaseOrientation.SetX(resQuat.v.x);
+		m_qBaseOrientation.SetY(resQuat.v.y);
+		m_qBaseOrientation.SetZ(resQuat.v.z);
+	}
+
+	void HyperealVRDevice::ResetPosition()
+	{
+		m_vBaseOffset = HYVec3ToVec3(m_rTrackedDevicePose[EDevice::Hmd].m_pose.m_position);
 	}
 
 }

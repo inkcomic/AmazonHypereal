@@ -146,11 +146,16 @@ namespace HyperealVR
 		void RebuildPlayArea();
 		const char* GetTrackedDeviceCharPointer(int nProperty);
 		inline void CopyPoseState(AZ::VR::PoseState& world, AZ::VR::PoseState& hmd, HyTrackingState& source);
+		inline void CopyPose(const HyTrackingState& src, AZ::VR::PoseState& poseDest, AZ::VR::DynamicsState& dynamicDest);
 
 		float GetInterpupillaryDistance() const;
 
 		void CreateGraphicsContext(void* graphicsDevice);
 		void ReleaseGraphicsContext();
 		void UpdateInternal();
+
+		void ResetOrientationAndPosition(float Yaw);
+		void ResetOrientation(float yaw);
+		void ResetPosition();
     };
 }
