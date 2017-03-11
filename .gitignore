@@ -331,6 +331,7 @@ Lumberyard/1.7.0.0/dev/Solutions
 Lumberyard/1.7.0.0/dev/Tools
 Lumberyard/1.7.0.0/dev/*.*
 Lumberyard/1.7.0.0/dev/wscript
+!Lumberyard/1.7.0.0/dev/run.bat
 
 !Lumberyard/1.7.0.0/dev/_WAF_/3rd_party/hvrapi.json
 !Lumberyard/1.7.0.0/dev/SetupAssistantConfig.json
