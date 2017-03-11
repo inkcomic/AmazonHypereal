@@ -17,51 +17,61 @@
 
 namespace HyperealVR
 {
-
-
 	// -------------------------------------------------------------------------
-	inline  AZ::Quaternion HmdQuatToWorldQuat(const  AZ::Quaternion& quat)
+
+	inline AZ::Quaternion QuatToAZQuat(const Quat& quat)
 	{
-		AZ::Matrix3x3 m33 = AZ::Matrix3x3::CreateFromQuaternion(quat); 
-		AZ::Vector3 column1 = -m33.GetColumn(2);
-		m33.SetColumn(2,m33.GetColumn(1));
-		m33.SetColumn(1,column1);
-		AZ::Quaternion rotation = AZ::Quaternion::CreateFromMatrix3x3(m33);
-		return  AZ::Quaternion::CreateRotationX(gf_PI * 0.5f) *  rotation;
+		return AZ::Quaternion(quat.v.x, quat.v.y, quat.v.z, quat.w);
+	}
+	inline  Quat& AZQuatToQuat(const AZ::Quaternion quat)
+	{
+		return Quat(quat.GetW(),quat.GetX(), quat.GetY(), quat.GetZ());
+	}
+	inline AZ::Vector3 Vec3ToAZVec3(const Vec3& vec)
+	{
+		return AZ::Vector3(vec.x,vec.y,vec.z);
+	}
+	inline Quat HmdQuatToWorldQuat(const Quat& quat)
+	{
+		Matrix33 m33(quat);
+		Vec3 column1 = -quat.GetColumn2();
+		m33.SetColumn2(m33.GetColumn1());
+		m33.SetColumn1(column1);
+		return Quat::CreateRotationX(gf_PI * 0.5f) * Quat(m33);
 	}
 
-	inline  AZ::Quaternion HYQuatToQuat(const HyQuat& q) {
-		return HmdQuatToWorldQuat(AZ::Quaternion(q.w, q.x, q.y, q.z));
+	inline Quat HYQuatToQuat(const HyQuat& q) {
+		return HmdQuatToWorldQuat(Quat(q.w, q.x, q.y, q.z));
 	}
 
-	inline AZ::Vector3 HYVec3ToVec3(const HyVec3& v) {
-		return AZ::Vector3(v.x, -v.z, v.y);
+	inline Vec3 HYVec3ToVec3(const HyVec3& v) {
+		return Vec3(v.x, -v.z, v.y);
 	}
-	inline HyQuat QuatToHYQuat(const AZ::Quaternion &q) {
-		AZ::Quaternion invQuat = HmdQuatToWorldQuat(q).GetInverseFull(); 
+	inline HyQuat QuatToHYQuat(const Quat &q) {
+		Quat invQuat = HmdQuatToWorldQuat(q).GetInverted();
 		HyQuat hyQuat;
-		hyQuat.w = invQuat.GetW();
-		hyQuat.x = invQuat.GetX();
-		hyQuat.y = invQuat.GetY();
-		hyQuat.z = invQuat.GetZ();
+		hyQuat.w = invQuat.w;
+		hyQuat.x = invQuat.v.x;
+		hyQuat.y = invQuat.v.y;
+		hyQuat.z = invQuat.v.z;
 		return hyQuat;
 	}
-	inline HyVec3 Vec3ToHYVec3(const AZ::Vector3& v) {
+	inline HyVec3 Vec3ToHYVec3(const Vec3& v) {
 		HyVec3 hyVec3;
-		hyVec3.x = v.GetX();
-		hyVec3.y = v.GetZ();
-		hyVec3.z = -v.GetY();
+		hyVec3.x = v.x;
+		hyVec3.y = v.z;
+		hyVec3.z = -v.y;
 		return hyVec3;
 	}
 	// -------------------------------------------------------------------------
 	void HyperealVRDevice::CopyPoseState(AZ::VR::PoseState& world, AZ::VR::PoseState& hmd, HyTrackingState& src)
 	{
-		AZ::Quaternion srcQuat = HYQuatToQuat(src.m_pose.m_rotation);
-		AZ::Vector3 srcPos = HYVec3ToVec3(src.m_pose.m_position);
-		AZ::Vector3 srcAngVel = HYVec3ToVec3(src.m_angularVelocity);
-		AZ::Vector3 srcAngAcc = HYVec3ToVec3(src.m_angularAcceleration);
-		AZ::Vector3 srcLinVel = HYVec3ToVec3(src.m_linearVelocity);
-		AZ::Vector3 srcLinAcc = HYVec3ToVec3(src.m_linearAcceleration);
+		AZ::Quaternion srcQuat = QuatToAZQuat(HYQuatToQuat(src.m_pose.m_rotation));
+		AZ::Vector3 srcPos = Vec3ToAZVec3(HYVec3ToVec3(src.m_pose.m_position));
+		AZ::Vector3 srcAngVel = Vec3ToAZVec3(HYVec3ToVec3(src.m_angularVelocity));
+		AZ::Vector3 srcAngAcc = Vec3ToAZVec3(HYVec3ToVec3(src.m_angularAcceleration));
+		AZ::Vector3 srcLinVel = Vec3ToAZVec3(HYVec3ToVec3(src.m_linearVelocity));
+		AZ::Vector3 srcLinAcc = Vec3ToAZVec3(HYVec3ToVec3(src.m_linearAcceleration));
 
 		hmd.orientation = srcQuat;
 		hmd.position = srcPos;
@@ -76,12 +86,12 @@ namespace HyperealVR
 	}
 	void HyperealVRDevice::CopyPose(const HyTrackingState& src, AZ::VR::PoseState& poseDest, AZ::VR::DynamicsState& dynamicDest)
 	{
-		AZ::Quaternion srcQuat = HYQuatToQuat(src.m_pose.m_rotation);
-		AZ::Vector3 srcPos = HYVec3ToVec3(src.m_pose.m_position);
-		AZ::Vector3 srcAngVel = HYVec3ToVec3(src.m_angularVelocity);
-		AZ::Vector3 srcAngAcc = HYVec3ToVec3(src.m_angularAcceleration);
-		AZ::Vector3 srcLinVel = HYVec3ToVec3(src.m_linearVelocity);
-		AZ::Vector3 srcLinAcc = HYVec3ToVec3(src.m_linearAcceleration);
+		AZ::Quaternion srcQuat = QuatToAZQuat(HYQuatToQuat(src.m_pose.m_rotation));
+		AZ::Vector3 srcPos = Vec3ToAZVec3(HYVec3ToVec3(src.m_pose.m_position));
+		AZ::Vector3 srcAngVel = Vec3ToAZVec3(HYVec3ToVec3(src.m_angularVelocity));
+		AZ::Vector3 srcAngAcc = Vec3ToAZVec3(HYVec3ToVec3(src.m_angularAcceleration));
+		AZ::Vector3 srcLinVel = Vec3ToAZVec3(HYVec3ToVec3(src.m_linearVelocity));
+		AZ::Vector3 srcLinAcc = Vec3ToAZVec3(HYVec3ToVec3(src.m_linearAcceleration));
 
 		poseDest.orientation = srcQuat;
 		poseDest.position = srcPos;
@@ -137,7 +147,7 @@ namespace HyperealVR
 
     void HyperealVRDevice::GetProvidedServices(AZ::ComponentDescriptor::DependencyArrayType& provided)
     {
-		provided.push_back(AZ_CRC("HMDDevice"));
+	//	provided.push_back(AZ_CRC("HMDDevice"));
         provided.push_back(AZ_CRC("HyperealVRService"));
     }
 
@@ -406,6 +416,8 @@ namespace HyperealVR
 		{
 			m_bVRInitialized = false;
 			HyShutdown();
+
+			gEnv->pSystem->Quit();
 		}
 	}
 
@@ -633,8 +645,8 @@ namespace HyperealVR
 						memcpy(&m_localEyePoseStates, &m_localStates[i/*EDevice::Hmd*/], sizeof(AZ::VR::TrackingState));
 
 						// compute centered transformation
-						AZ::Quaternion eyeRotation = HYQuatToQuat(hyEyeRenderPose[HY_EYE_LEFT].m_rotation);
-						AZ::Vector3 eyePosition = HYVec3ToVec3(hyEyeRenderPose[HY_EYE_LEFT].m_position);
+						AZ::Quaternion eyeRotation = QuatToAZQuat(HYQuatToQuat(hyEyeRenderPose[HY_EYE_LEFT].m_rotation));
+						AZ::Vector3 eyePosition = Vec3ToAZVec3(HYVec3ToVec3(hyEyeRenderPose[HY_EYE_LEFT].m_position));
 
 						AZ::Quaternion qRecenterRotation = m_qBaseOrientation.GetInverseFull()*eyeRotation;
 						qRecenterRotation.Normalize();
@@ -803,7 +815,8 @@ namespace HyperealVR
 
 	void HyperealVRDevice::RecenterPose()
 	{
-		ResetOrientationAndPosition(0.0f);
+		if(m_lastFrameID_UpdateTrackingState>0)
+			ResetOrientationAndPosition(0.0f);
 	}
 
 	void HyperealVRDevice::SetTrackingLevel(const AZ::VR::HMDTrackingLevel level)
@@ -962,7 +975,7 @@ namespace HyperealVR
 
 	void HyperealVRDevice::ResetOrientation(float yaw)
 	{
-		const AZ::Quaternion& _qBaseOrientation = HYQuatToQuat(m_rTrackedDevicePose[EDevice::Hmd].m_pose.m_rotation);
+		const AZ::Quaternion& _qBaseOrientation = QuatToAZQuat(HYQuatToQuat(m_rTrackedDevicePose[EDevice::Hmd].m_pose.m_rotation));
 		Quat qBaseOrientation(_qBaseOrientation.GetW(), _qBaseOrientation.GetX(), _qBaseOrientation.GetY(), _qBaseOrientation.GetZ());
 		Ang3 currentAng = Ang3(qBaseOrientation);
 		if (!m_bResetOrientationKeepPitchAndRoll)
@@ -985,7 +998,7 @@ namespace HyperealVR
 
 	void HyperealVRDevice::ResetPosition()
 	{
-		m_vBaseOffset = HYVec3ToVec3(m_rTrackedDevicePose[EDevice::Hmd].m_pose.m_position);
+		m_vBaseOffset = Vec3ToAZVec3( HYVec3ToVec3(m_rTrackedDevicePose[EDevice::Hmd].m_pose.m_position));
 	}
 
 }
