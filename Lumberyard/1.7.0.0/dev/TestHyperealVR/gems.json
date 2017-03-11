@@ -14,12 +14,6 @@
             "_comment": "HyperealVR"
         },
         {
-            "Path": "Gems/OpenVR",
-            "Uuid": "3b1c41404cb147fe87e25bf72e035faa",
-            "Version": "1.0.0",
-            "_comment": "OpenVR"
-        },
-        {
             "Path": "Gems/UiBasics",
             "Uuid": "6bb61c9e547043f0afc5019d6d460b78",
             "Version": "0.1.0",
