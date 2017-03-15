@@ -1,0 +1,11 @@
+{
+    "none": {
+        "Implementation": [
+            "Source/HyperealVRDevice.cpp",
+            "Source/HyperealVRDevice.h",
+			"Source/HyperealVRController.h",
+            "Source/HyperealVRController.cpp",
+            "Source/HyperealVRFlowNodes.cpp"
+        ]
+    }
+}

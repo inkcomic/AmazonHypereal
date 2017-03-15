@@ -1,0 +1,21 @@
+{
+	"name": "HvrAPI",
+	"source": "@ROOT@/Code/SDKs/HvrAPI",
+	"description": "Virtual Reality Head-Mounted Display SDK for hypereal",
+	"includes": [
+		"Includes"
+	],
+	"defines": [],
+	"lib_required": "True",
+	"platform": {
+		"win_x64_vs2013": {
+			"libpath": [
+				"Libs/Win64"
+			],
+			"lib": [
+				"HvrAPI.lib"
+			]
+		},
+		"win_x64_vs2015": "@win_x64_vs2013"
+	}
+}
