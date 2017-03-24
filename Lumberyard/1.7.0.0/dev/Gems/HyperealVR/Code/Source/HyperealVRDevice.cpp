@@ -179,7 +179,7 @@ namespace HyperealVR
 	}
     void HyperealVRDevice::Init()
     {
-		m_lastFrameID_UpdateTrackingState = -1;
+//		m_lastFrameID_UpdateTrackingState = -1;
 
 // 		m_hasInputFocus = (false);
 // 		m_hmdTrackingDisabled = (false);
@@ -678,6 +678,12 @@ namespace HyperealVR
 					}
 					else//HMD
 					{
+
+						// Cache the current tracking state for later submission after this frame has finished rendering.
+						{
+							FrameParameters& frameParams = GetFrameParameters();
+							frameParams.frameID = frameId;
+						}
 					}
 				}
 			}
@@ -784,10 +790,6 @@ namespace HyperealVR
 // 				}
 // 			}
 // 		}
-
-
-
-		m_lastFrameID_UpdateTrackingState = frameId;
 	}
 
 	AZ::VR::TrackingState* HyperealVRDevice::GetTrackingState()
@@ -805,17 +807,19 @@ namespace HyperealVR
 // 			m_compositor->WaitGetPoses(m_trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
 // 		}
 
+		FrameParameters& frameParams = GetFrameParameters();
+
 		if (m_pVrGraphicsCxt)
 		{
 			HyResult hr = hySuccess;
 
-			hr = m_pVrGraphicsCxt->Submit(m_lastFrameID_UpdateTrackingState, m_RTDesc, 2);
+			hr = m_pVrGraphicsCxt->Submit(frameParams.frameID, m_RTDesc, 2);
 		}
 	}
 
 	void HyperealVRDevice::RecenterPose()
 	{
-		if(m_lastFrameID_UpdateTrackingState>0)
+		//if(m_lastFrameID_UpdateTrackingState>0)
 			ResetOrientationAndPosition(0.0f);
 	}
 
@@ -1001,4 +1005,11 @@ namespace HyperealVR
 		m_vBaseOffset = Vec3ToAZVec3( HYVec3ToVec3(m_rTrackedDevicePose[EDevice::Hmd].m_pose.m_position));
 	}
 
+	HyperealVRDevice::FrameParameters& HyperealVRDevice::GetFrameParameters()
+	{
+		static IRenderer* renderer = gEnv->pRenderer;
+		const int frameID = renderer->GetFrameID(false);
+
+		return m_frameParams[frameID & 1]; 
+	}
 }

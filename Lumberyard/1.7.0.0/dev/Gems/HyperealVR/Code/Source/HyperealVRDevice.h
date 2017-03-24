@@ -115,7 +115,7 @@ namespace HyperealVR
 		HyGraphicsContext *m_pVrGraphicsCxt;
 		HyGraphicsContextDesc m_VrGraphicsCxtDesc;
 
-		int                     m_lastFrameID_UpdateTrackingState;
+		//int                     m_lastFrameID_UpdateTrackingState;
 
 		HyFov m_eyeFovSym;
 		float m_fPixelDensity;
@@ -135,13 +135,14 @@ namespace HyperealVR
 		bool					m_bPosTrackingEnable;
 		bool					m_bResetOrientationKeepPitchAndRoll;
 
-		// Controller related:
-//		OpenVRController              m_controller;
-// 		bool                    m_hasInputFocus;
-// 		bool                    m_hmdTrackingDisabled;
-// 		float                   m_hmdQuadDistance;
-// 		float                   m_hmdQuadWidth;
-// 		int                     m_hmdQuadAbsolute;
+		
+		struct FrameParameters
+		{
+			int frameID;
+		};
+
+		FrameParameters& GetFrameParameters();
+		FrameParameters m_frameParams[2]; 
 
 		void RebuildPlayArea();
 		const char* GetTrackedDeviceCharPointer(int nProperty);
