@@ -74,8 +74,8 @@ namespace HyperealVR
 		void DisconnectFromControllerBus();
 
 		void SetCurrentState(const uint32_t deviceIndex, const AZ::VR::TrackingState& trackingState, const HyInputState& buttonState);
-		void ConnectController(const uint32_t deviceIndex);
-		void DisconnectController(const uint32_t deviceIndex);
+// 		void ConnectController(const uint32_t deviceIndex);
+// 		void DisconnectController(const uint32_t deviceIndex);
 
 	private:
 
@@ -95,30 +95,24 @@ namespace HyperealVR
 			{
 				if (this != &otherState)
 				{
-					memcpy(&buttonState, &otherState.buttonState, sizeof(buttonState));
+					memcpy(this, &otherState, sizeof(otherState));
 				}
 
 				return *this;
 			}
 
-			void Set(const AZ::VR::TrackingState& newTrackingState, const HyInputState& newButtonState)
+			inline bool IsButtonPressed(const uint32 buttonId) const
 			{
-				trackingState = newTrackingState;
-				memcpy(&buttonState, &newButtonState, sizeof(newButtonState));
+				return (inputState.m_buttons & buttonId) != 0;
 			}
 
-			inline bool IsButtonPressed(const HyButton& buttonId) const
+			inline bool IsButtonTouched(const uint32 buttonId) const
 			{
-				return (buttonState.m_buttons & buttonId) != 0;
+				return (inputState.m_touches & buttonId) != 0;
 			}
 
-			inline bool IsButtonTouched(const  HyButton&  buttonId) const
-			{
-				return (buttonState.m_buttons & buttonId) != 0;
-			}
-
-			AZ::VR::TrackingState trackingState;
-			HyInputState buttonState;
+			AZ::VR::TrackingState trackingState/*[static_cast<uint32_t>(AZ::VR::ControllerIndex::MaxNumControllers)]*/;
+			HyInputState inputState;
 		};
 
 		HyDevice*& m_system; // Note: the system can be created *after* the device is created

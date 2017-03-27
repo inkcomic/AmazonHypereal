@@ -1475,8 +1475,8 @@
 		{
             "identifier" : "HyperealVRSDK",
             "name" : "HyperealVRSDKName",
-            "version" : "0.4.27",
-            "source" : "HvrAPI/0.4.27",
+            "version" : "0.7.30",
+            "source" : "HvrAPI/0.7.30",
             "optional" : 0,
             "description" : "HyperealVRSDKDescriptionSummary",
             "detailedInstructions" : "HyperealVRSDKDetailedInstructions",
@@ -1484,13 +1484,13 @@
             "symlinks" :
             [
                 {
-                    "source" : "HvrAPI/0.4.27",
+                    "source" : "HvrAPI/0.7.30",
                     "destination" : "$CODEFOLDERNAME$/SDKs/HvrAPI",
                     "exampleFile" : "Includes/Hypereal_VR.h"
                 },
                 {
                     "compilers" : ["vc120", "vc140"],
-                    "source" : "HvrAPI/0.4.27",
+                    "source" : "HvrAPI/0.7.30",
                     "destination" : "$CODEFOLDERNAME$/SDKs/HvrAPI",
                     "exampleFile" : "Libs/Win64/HvrAPI.lib"
                 }

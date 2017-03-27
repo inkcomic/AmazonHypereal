@@ -172,9 +172,9 @@ namespace HyperealVR
 			return false;
 		bool bControllerConnected = false;
 		if (HY_SUBDEV_CONTROLLER_LEFT == id)
-			m_pVrDevice->GetBoolValue(HY_PROPERTY_CONTROLLER0_CONNECTED_BOOL, bControllerConnected);
+			m_pVrDevice->GetBoolValue(HY_PROPERTY_DEVICE_CONNECTED_BOOL, bControllerConnected, HyGetSubDeviceType(HY_SUBDEV_CONTROLLER_LEFT));
 		else if (HY_SUBDEV_CONTROLLER_RIGHT == id)
-			m_pVrDevice->GetBoolValue(HY_PROPERTY_CONTROLLER1_CONNECTED_BOOL, bControllerConnected);
+			m_pVrDevice->GetBoolValue(HY_PROPERTY_DEVICE_CONNECTED_BOOL, bControllerConnected, HyGetSubDeviceType(HY_SUBDEV_CONTROLLER_RIGHT));
 		return bControllerConnected;
 	}
     void HyperealVRDevice::Init()
@@ -260,10 +260,10 @@ namespace HyperealVR
 
 			memset(&m_VrDeviceInfo, 0, sizeof(DeviceInfo));
 
-			m_pVrDevice->GetIntValue(HY_PROPERTY_DEVICE_RESOLUTION_X_INT, m_VrDeviceInfo.DeviceResolutionX);
-			m_pVrDevice->GetIntValue(HY_PROPERTY_DEVICE_RESOLUTION_Y_INT, m_VrDeviceInfo.DeviceResolutionY);
-			m_pVrDevice->GetFloatArray(HY_PROPERTY_DEVICE_LEFT_EYE_FOV_FLOAT4_ARRAY, m_VrDeviceInfo.Fov[HY_EYE_LEFT].val, 4);
-			m_pVrDevice->GetFloatArray(HY_PROPERTY_DEVICE_RIGHT_EYE_FOV_FLOAT4_ARRAY, m_VrDeviceInfo.Fov[HY_EYE_RIGHT].val, 4);
+			m_pVrDevice->GetIntValue(HY_PROPERTY_HMD_RESOLUTION_X_INT, m_VrDeviceInfo.DeviceResolutionX);
+			m_pVrDevice->GetIntValue(HY_PROPERTY_HMD_RESOLUTION_Y_INT, m_VrDeviceInfo.DeviceResolutionY);
+			m_pVrDevice->GetFloatArray(HY_PROPERTY_HMD_LEFT_EYE_FOV_FLOAT4_ARRAY, m_VrDeviceInfo.Fov[HY_EYE_LEFT].val, 4);
+			m_pVrDevice->GetFloatArray(HY_PROPERTY_HMD_RIGHT_EYE_FOV_FLOAT4_ARRAY, m_VrDeviceInfo.Fov[HY_EYE_RIGHT].val, 4);
 
 
 
@@ -272,14 +272,14 @@ namespace HyperealVR
 			m_deviceInfo.renderWidth = (uint)m_VrDeviceInfo.DeviceResolutionX;
 			m_deviceInfo.renderHeight = (uint)m_VrDeviceInfo.DeviceResolutionY;
 
-			m_deviceInfo.manufacturer = GetTrackedDeviceCharPointer(HY_PROPERTY_DEVICE_MANUFACTURER_STRING);
-			m_deviceInfo.productName = GetTrackedDeviceCharPointer(HY_PROPERTY_DEVICE_PRODUCT_NAME_STRING);
+			m_deviceInfo.manufacturer = GetTrackedDeviceCharPointer(HY_PROPERTY_MANUFACTURER_STRING);
+			m_deviceInfo.productName = GetTrackedDeviceCharPointer(HY_PROPERTY_PRODUCT_NAME_STRING);
 			m_deviceInfo.fovH = 2.0f * atanf(m_eyeFovSym.m_leftTan);
 			m_deviceInfo.fovV = 2.0f * atanf(m_eyeFovSym.m_upTan);
 
 
 			bool isConnected = false;
-			hr = m_pVrDevice->GetBoolValue(HY_PROPERTY_HMD_CONNECTED_BOOL, isConnected);
+			hr = m_pVrDevice->GetBoolValue(HY_PROPERTY_DEVICE_CONNECTED_BOOL, isConnected, HySubDevice::HY_SUBDEV_HMD);
 			if (hySucceeded(hr) && isConnected)
 			{
 				//m_pVrDevice->ConfigureTrackingOrigin(m_pTrackingOriginCVar->GetIVal() == (int)EHmdTrackingOrigin::Floor == 1 ? HY_TRACKING_ORIGIN_FLOOR : HY_TRACKING_ORIGIN_EYE);
@@ -291,13 +291,13 @@ namespace HyperealVR
 				// Check for any controllers that may be connected.
 				{
 				 	m_controller->Enable(true);
-				 	for (int ii = 0; ii < HY_SUBDEV_CONTROLLER_RESERVED; ++ii)
-				 	{
-						if (IsConnected(ii))
-						{
-							m_controller->ConnectController(ii);
-						}
-				 	}
+// 				 	for (int ii = 0; ii < 2; ++ii)
+// 				 	{
+// 						if (IsConnected(ii))
+// 						{
+// 							m_controller->ConnectController(ii);
+// 						}
+// 				 	}
 				}
 
 				SetTrackingLevel(AZ::VR::HMDTrackingLevel::kFloor); 
@@ -429,11 +429,11 @@ namespace HyperealVR
 		if (m_bVRSystemValid)
 		{
 			bool isConnected = false;
-			HyResult hr = m_pVrDevice->GetBoolValue(HY_PROPERTY_HMD_CONNECTED_BOOL, isConnected);
+			HyResult hr = m_pVrDevice->GetBoolValue(HY_PROPERTY_DEVICE_CONNECTED_BOOL, isConnected, HY_SUBDEV_HMD);
 			if (hySucceeded(hr) && isConnected)
 			{
 				float ipd = DEFAULT_IPD;
-				hr = m_pVrDevice->GetFloatValue(HY_PROPERTY_IPD_FLOAT, ipd);
+				hr = m_pVrDevice->GetFloatValue(HY_PROPERTY_HMD_IPD_FLOAT, ipd);
 				if (hySucceeded(hr))
 					return ipd;
 			}
@@ -673,7 +673,7 @@ namespace HyperealVR
 						if (hySuccess == res)
 						{
 							/*m_controller.Update(sid, m_nativeStates[i], m_localStates[i], controllerState);*/
-							m_controller->SetCurrentState(sid, m_localStates[i], controllerState);
+							m_controller->SetCurrentState(HyGetSubDeviceType(sid), m_localStates[i], controllerState);
 						}
 					}
 					else//HMD
@@ -905,7 +905,7 @@ namespace HyperealVR
 		//	return nullptr;
 
 		char* pBuffer = new char[realStrLen];
-		m_pVrDevice->GetStringValue(HY_PROPERTY_DEVICE_MANUFACTURER_STRING, pBuffer, realStrLen, &realStrLen);
+		m_pVrDevice->GetStringValue(HY_PROPERTY_MANUFACTURER_STRING, pBuffer, realStrLen, &realStrLen);
 		return const_cast<char*>(pBuffer);
 	}
 
