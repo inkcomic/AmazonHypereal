@@ -122,7 +122,7 @@ namespace HyperealVR
 		bool m_bVRInitialized;
 		bool m_bVRSystemValid;
 		bool m_bIsQuitting;
-		HyTextureDesc m_RTDesc[2];
+		
 		float m_fInterpupillaryDistance;
 
 		HyVec2 *m_pPlayAreaVertices;
@@ -135,9 +135,9 @@ namespace HyperealVR
 		bool					m_bPosTrackingEnable;
 		bool					m_bResetOrientationKeepPitchAndRoll;
 
-		
 		struct FrameParameters
 		{
+			HyTextureDesc m_RTDesc[2];
 			int frameID;
 		};
 

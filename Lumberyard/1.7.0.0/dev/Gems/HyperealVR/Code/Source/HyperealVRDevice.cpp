@@ -230,8 +230,11 @@ namespace HyperealVR
 		{
 			for (int i = 0; i < 2; ++i)
 			{
-				m_RTDesc[i].m_uvSize = HyVec2{ 1.f, 1.f };
-				m_RTDesc[i].m_uvOffset = HyVec2{ 0.f, 0.f };
+				for (int j =0;j<2;j++)
+				{
+					m_frameParams[i].m_RTDesc[j].m_uvSize = HyVec2{ 1.f, 1.f };
+					m_frameParams[i].m_RTDesc[j].m_uvOffset = HyVec2{ 0.f, 0.f };
+				}
 			}
 
 			HyResult startResult = HyStartup();
@@ -539,8 +542,11 @@ namespace HyperealVR
 		
 		for (int i = 0; i < 2; ++i)
 		{
-			m_RTDesc[i].m_uvSize = HyVec2{ 1.f, 1.f };
-			m_RTDesc[i].m_uvOffset = HyVec2{ 0.f, 0.f };
+			for (int j = 0; j < 2; j++)
+			{
+				m_frameParams[i].m_RTDesc[j].m_uvSize = HyVec2{ 1.f, 1.f };
+				m_frameParams[i].m_RTDesc[j].m_uvOffset = HyVec2{ 0.f, 0.f };
+			}
 		}
 
  		for (size_t i = 0; i < eyeCount; ++i)
@@ -562,9 +568,12 @@ namespace HyperealVR
  			ID3D11Texture2D* texture;
  			d3dDevice->CreateTexture2D(&textureDesc, nullptr, &texture);
  
-
-			m_RTDesc[i].m_texture = texture;
 			
+			for (int j = 0; j < 2; j++)
+			{
+				m_frameParams[j].m_RTDesc[i].m_texture = texture;
+			}
+		
 //  			// Create a HyperealVR texture that is associated with this new D3D texture.
 //  			vr::Texture_t* deviceTexture = new vr::Texture_t();
 //  			deviceTexture->eColorSpace = vr::EColorSpace::ColorSpace_Auto;
@@ -572,7 +581,7 @@ namespace HyperealVR
 //  			deviceTexture->handle = texture;
  
  			// We only create one texture for HyperealVR (no swapchain).
- 			renderTargets[i]->deviceSwapTextureSet = &m_RTDesc[i];
+ 			renderTargets[i]->deviceSwapTextureSet = &m_frameParams[0].m_RTDesc[i];
  			renderTargets[i]->numTextures = 1;
  			renderTargets[i]->textures = new void*[1];
  			renderTargets[i]->textures[0] = texture;
@@ -806,14 +815,19 @@ namespace HyperealVR
 // 
 // 			m_compositor->WaitGetPoses(m_trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
 // 		}
-
+		const EyeTarget* eyes[] = { &left, &right };
 		FrameParameters& frameParams = GetFrameParameters();
+
+		for (int i=0;i<2;i++)
+		{
+			frameParams.m_RTDesc[i].m_texture = eyes[i]->renderTarget;
+		}
 
 		if (m_pVrGraphicsCxt)
 		{
 			HyResult hr = hySuccess;
 
-			hr = m_pVrGraphicsCxt->Submit(frameParams.frameID, m_RTDesc, 2);
+			hr = m_pVrGraphicsCxt->Submit(frameParams.frameID, frameParams.m_RTDesc, 2);
 		}
 	}
 
