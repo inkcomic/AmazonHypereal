@@ -453,7 +453,12 @@ namespace HyperealVR
 		float fFar = farPlane;
 		HyMat4 proj;
 		m_pVrGraphicsCxt->GetProjectionMatrix(m_VrDeviceInfo.Fov[eye], fNear, fFar, true, proj);
-		cameraInfo.fov = 2.0f * atan(1.0f / proj.m[1][1]);
+
+		{
+			cameraInfo.fov = (eye== EStereoEye::STEREO_EYE_LEFT)?(atanf(m_VrDeviceInfo.Fov[EStereoEye::STEREO_EYE_LEFT].m_downTan) + atanf(m_VrDeviceInfo.Fov[EStereoEye::STEREO_EYE_LEFT].m_upTan)):
+				(atanf(m_VrDeviceInfo.Fov[EStereoEye::STEREO_EYE_LEFT].m_downTan) + atanf(m_VrDeviceInfo.Fov[EStereoEye::STEREO_EYE_LEFT].m_upTan));
+		}
+
 		cameraInfo.aspectRatio = proj.m[1][1] / proj.m[0][0];
 		const float denom = 1.0f / proj.m[1][1];
 		cameraInfo.frustumPlane.horizontalDistance = proj.m[0][2] * denom * cameraInfo.aspectRatio;
