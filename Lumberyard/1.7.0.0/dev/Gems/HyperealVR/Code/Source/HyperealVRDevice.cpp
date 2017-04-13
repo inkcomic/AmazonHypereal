@@ -825,7 +825,7 @@ namespace HyperealVR
 
 		for (int i=0;i<2;i++)
 		{
-			frameParams.m_RTDesc[i].m_texture = eyes[i]->renderTarget;
+			frameParams.m_RTDesc[i] = *static_cast<HyTextureDesc*> (eyes[i]->renderTarget);
 		}
 
 		if (m_pVrGraphicsCxt)
